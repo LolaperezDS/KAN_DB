@@ -87,6 +87,7 @@ class UserTable(Base):
     kpd_score = Column(Integer, nullable=False)
 
     role_id = Column(Integer, ForeignKey("roletable.id"))
+    role = relationship("RoleTable", foreign_keys=[role_id])
 
 
 # Определяем модель для привилегий пользователей

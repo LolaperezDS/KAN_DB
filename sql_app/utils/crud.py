@@ -152,10 +152,10 @@ def get_event_by_event_target_id(event_target_id, num_of_events: int, session):
 
 # Получение всех пользователей чьи кпд > 0 (доступ только у модераторов)
 def get_users_with_positive_kpd(current_user, session):
-    if not (current_user.role_id == 1 or current_user.role_id == 2):
+    if not (current_user.role_id == 3 or current_user.role_id == 2):
         raise Exception("Only admins and moderators can get this operation")
     try:
-        users = session.query(UserTable).filter(UserTable.role_id != 1, UserTable.kpd_score > 0).all()
+        users = session.query(UserTable).filter(UserTable.role_id != 3, UserTable.kpd_score > 0).all()
         return users
     except Exception as e:
         raise e

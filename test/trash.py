@@ -28,13 +28,11 @@ user_data = {
     'kpd_score': 100,
     'role_id': 2
 }
-"""
+session.query(EventLogTable).delete()
 session.query(UserTable).delete()
 session.query(NotificationTable).delete()
-session.query(EventLogTable).delete()
 # session.query(FeedbackTable).delete()
 session.commit()
-"""
 """
 Габитов Данил Димович @Da_da_nil 30
 Хайруллов Нияз Ильдарович @Geravod 15
@@ -59,6 +57,7 @@ common_user2 = UserTable(id=None,
                         kpd_score=0,
                         role_id=3)
 
+session.add(common_user1)
 session.add(common_user2)
 session.commit()
 

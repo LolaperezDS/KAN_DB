@@ -33,13 +33,13 @@ def message_handler(message):
             user = None
     if user is None:
         auth_query(message)
-    elif user.role_id == 1:
+    elif user.role_id == 3:
         bot.send_message(message.chat.id, "Основное меню администратора:",
                          reply_markup=markups.gen_admin())
     elif user.role_id == 2:
         bot.send_message(message.chat.id, "Основное меню модератора:",
                          reply_markup=markups.gen_moder_main())
-    elif user.role_id == 3:
+    elif user.role_id == 1:
         bot.send_message(message.chat.id, "Основное меню:",
                          reply_markup=markups.gen_stud())
     else:
@@ -306,8 +306,8 @@ def profile_output(tg_id: int) -> None:
     session = SessionLocal(bind=engine)
     profile = crud.get_own_profile_by_tg_id(str(tg_id), session)
     session.close()
-    ans = "Профиль\nВаше имя - " + profile.get("full_name") + \
-          "\nРоль " + profile.get("role") + "\nБаллы КПД - " + str(profile.get("kpd_score"))
+    ans = "Профиль\nВаше имя - " + profile["full_name"] + \
+          "\nРоль " + profile["role"] + "\nБаллы КПД - " + str(profile.get("kpd_score"))
     bot.send_message(tg_id, ans)
 
 
