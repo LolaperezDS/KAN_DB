@@ -96,10 +96,6 @@ def change_pwd_message(message):
         return
     old_pwd = message.text.split()[1]
     new_pwd = message.text.split()[2]
-<<<<<<< Updated upstream
-=======
-    print(user.password)
->>>>>>> Stashed changes
     if old_pwd == user.password:
         crud.change_password(new_pwd, user, session)
         bot.send_message(message.chat.id, "Вы успешно сменили пароль")

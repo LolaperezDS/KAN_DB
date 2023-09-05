@@ -31,6 +31,7 @@ CREATE TABLE UserTable(
   id SERIAL PRIMARY KEY,
   is_active bool NOT NULL,
   tg_id VARCHAR(50) UNIQUE,
+  login VARCHAR(50) NOT NULL UNIQUE,
   password TEXT NOT NULL,
   full_name TEXT NOT NULL,
   kpd_score integer NOT NULL
@@ -82,6 +83,7 @@ class UserTable(Base):
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     is_active = Column(Boolean, nullable=False)
     tg_id = Column(VARCHAR(length=50), unique=True)
+    login = Column(VARCHAR(length=50), nullable=False, unique=True)
     password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     kpd_score = Column(Integer, nullable=False)

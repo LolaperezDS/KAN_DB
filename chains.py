@@ -297,7 +297,6 @@ def kpd_handler(tg_id: int) -> None:
 
     ans = "\n".join(["Дата: " + str(i.created_at) + "\nПричина: " + str(i.message) + "\nКол-во баллов: " +
                      str(i.kpd_diff) + "\n----------" for i in events]) if events else "У вас нет КПД"
-
     bot.send_message(tg_id, "История КПД\n----------\n" + ans)
 
 
