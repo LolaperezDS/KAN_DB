@@ -163,7 +163,7 @@ def get_users_with_positive_kpd(current_user, session):
 
 # Отмена всех уведомлений (доступ только у администратора)
 def cancel_all_notifications(current_user, session):
-    if current_user.role_id != 1:
+    if current_user.role_id != 3:
         raise Exception("Only admins can cancel notifications.")
 
     try:
@@ -176,7 +176,7 @@ def cancel_all_notifications(current_user, session):
 
 # Удаление уведомления (доступ только у администратора)
 def delete_notification(notification_id, current_user, session):
-    if current_user.role_id != 1:
+    if current_user.role_id != 3:
         raise Exception("Only admins can delete notifications.")
 
     try:
@@ -194,7 +194,7 @@ def delete_notification(notification_id, current_user, session):
 
 # Изменение уведомления (доступ только у администратора)
 def update_notification(notification_id, updated_notification, current_user, session):
-    if current_user.role_id != 1:
+    if current_user.role_id != 3:
         raise Exception("Only admins can update notifications.")
 
     try:
@@ -214,7 +214,7 @@ def update_notification(notification_id, updated_notification, current_user, ses
 
 # Создание уведомления (доступ только у администратора)
 def create_notification(notification_data, current_user, session):
-    if current_user.role_id != 1:
+    if current_user.role_id != 3:
         raise Exception("Only admins can create notifications.")
 
     try:
@@ -229,7 +229,7 @@ def create_notification(notification_data, current_user, session):
 
 # Чтение фидбека (доступ только у администратора)
 def read_feedback(feedback_id, current_user, session):
-    if current_user.role_id != 1:
+    if current_user.role_id != 3:
         raise Exception("Only admins can read feedback.")
 
     try:
@@ -259,7 +259,7 @@ def create_feedback(feedback_message, score: FeedbackScore, current_user, sessio
 
 # Форсированная смена пароля у пользователя (доступ только у администратора)
 def force_change_password(full_name, new_password, current_user, session):
-    if current_user.role_id != 1:
+    if current_user.role_id != 3:
         raise Exception("Access denied")
 
     try:
@@ -288,7 +288,7 @@ def change_password(new_password, current_user, session):
 
 
 # Деаутентификация со всех аккаунтов после авторизации (зануление ID в VK и TG) (доступ только у пользователя)
-def deauthenticate(current_user, session):
+def deauthenticate(current_user, session) -> bool:
     try:
         current_user.tg_id = None
         session.commit()
@@ -299,10 +299,11 @@ def deauthenticate(current_user, session):
 
 
 # Авторизация (привязка ID после ввода пароля)
-def authenticate(tg_id, password, session):
+def authenticate(tg_id, password, session) -> bool:
     try:
         user = session.query(UserTable).filter(UserTable.password == password).first()
         if user is None:
+            session.rollback()
             raise Exception("User not found")
 
         user.tg_id = tg_id
@@ -315,7 +316,7 @@ def authenticate(tg_id, password, session):
 
 def get_tg_id_all_users(session):
     try:
-        users = session.query(UserTable.tg_id).filter(UserTable.role_id != 1).filter(UserTable.tg_id is not None).all()
+        users = session.query(UserTable.tg_id).filter(UserTable.role_id != 3).filter(UserTable.tg_id is not None).all()
         user_ids = [user.tg_id for user in users]
         return user_ids
     except Exception as e:

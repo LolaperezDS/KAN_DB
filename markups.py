@@ -1,5 +1,7 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import os
+from dotenv import load_dotenv
 
 
 def gen_stud() -> InlineKeyboardMarkup:
@@ -56,7 +58,7 @@ def gen_notification() -> InlineKeyboardMarkup:
 
 
 if __name__ == "__main__":
-    token = "6012918807:AAGmDv1adk0ic1RtlUuDgCbdCnS0QoYP9Dc"
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
     bot = telebot.TeleBot(token)
 
     @bot.message_handler(func=lambda message: True)

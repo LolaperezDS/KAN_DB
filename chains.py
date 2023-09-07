@@ -11,7 +11,7 @@ load_dotenv()
 
 IS_PRODUCTION_MODE = bool(int(os.environ.get("IS_PRODUCTION_MODE")))
 
-token = "6012918807:AAGmDv1adk0ic1RtlUuDgCbdCnS0QoYP9Dc"
+token = os.environ.get("TELEGRAM_BOT_TOKEN")
 bot = telebot.TeleBot(token)
 
 
