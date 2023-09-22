@@ -19,12 +19,14 @@ sessions_feedback: dict[str, models.FeedbackTable] = {}
 sessions_event: dict[str, models.EventLogTable] = {}
 session_through: dict[str, models.ThroughTable] = {}
 session_notify: dict[str, models.NotificationTable] = {}
+session_auth: dict[str, str] = {}
 
 def is_free(tg_id: str) -> bool:
     if tg_id not in session_notify and \
        tg_id not in sessions_event and \
        tg_id not in session_through and \
-       tg_id not in session_notify:
+       tg_id not in session_notify and \
+       tg_id not in session_auth:
         return True
     return False
 
@@ -34,8 +36,7 @@ def is_free(tg_id: str) -> bool:
 def message_handler(message):
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(str(message.from_user.id), session)
-        session.close()
+        user = crud.get_user_by_tg_id(message.from_user.id, session)
     else:
         if input("is authed? y/n") == "y":
             user = models.UserTable(role_id=int(input("test role:")), full_name="TESTNAME")
@@ -54,13 +55,14 @@ def message_handler(message):
                          reply_markup=markups.gen_stud())
     else:
         print("unhandled role ```message_handler```")
+    session.close()
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     if not is_free(call.from_user.id):
         return
-    
+
     if call.data == "profile":
         profile_output(call.from_user.id)
     elif call.data == "kpd":
@@ -182,7 +184,7 @@ def feedback_body_handler(message) -> None:
     else:
         print("Feedback from: " + str(message.from_user.id) + " = " + message.text)
     send = bot.send_message(message.from_user.id,
-                            "Оцените экспириенс взаимодействия:\n1 - плохо\n2 - нормально\n3 - хорошо")
+                            "Оцените опыт взаимодействия:\n1 - плохо\n2 - нормально\n3 - хорошо")
     bot.register_next_step_handler(send, feedback_score_handler)
 
 
@@ -193,17 +195,19 @@ def feedback_score_handler(message) -> None:
 
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(str(message.from_user.id), session)
+        user = crud.get_user_by_tg_id(message.from_user.id, session)
 
         if not user:
             print("user not found")
             session.close()
+            if str(message.from_user.id) in sessions_feedback:
+                sessions_feedback.pop(str(message.from_user.id))
             return
         try:
             new_feedback = sessions_feedback.get(str(message.from_user.id))
             if new_feedback:
-                new_feedback.user_id = user.id
-                new_feedback.feedback_score = models.FeedbackScore(score_of_feedback)
+                new_feedback.initiator_id = user.id
+                new_feedback.feedback_score = score_of_feedback
                 session.add(new_feedback)
                 session.commit()
                 sessions_feedback.pop(str(message.from_user.id))
@@ -272,20 +276,28 @@ def change_password_final(message):
 
 # region Auth chain
 def auth_query(message):
+    send = bot.send_message(message.chat.id, 'Введите логин:')
+    bot.register_next_step_handler(send, auth_pwd)
+
+
+def auth_pwd(message):
+    session_auth.update({str(message.from_user.id): message.text})
     send = bot.send_message(message.chat.id, 'Введите пароль:')
     bot.register_next_step_handler(send, auth_handler)
-
 
 def auth_handler(message):
     if IS_PRODUCTION_MODE:
         try:
             session = SessionLocal(bind=engine)
-            crud.authenticate(str(message.from_user.id), message.text, session)
+            crud.authenticate(message.from_user.id, session_auth[str(message.from_user.id)], message.text, session)
             session.close()
         except BaseException:
             bot.send_message(message.chat.id, 'Неправильный пароль. Попробуйте ещё раз или обратитесь к администрации.')
             auth_query(message)
             return
+        finally:
+            if str(message.from_user.id) in session_auth:
+                session_auth.pop(str(message.from_user.id))
         bot.send_message(message.chat.id, 'Вы успешно аутентифицировались')
         bot.delete_message(message.chat.id, message.id)
         message_handler(message=message)
@@ -304,8 +316,12 @@ def info_output(tg_id: int) -> None:
 # KPD OUTPUT METHOD
 def kpd_handler(tg_id: int) -> None:
     session = SessionLocal(bind=engine)
-    profile = crud.get_own_profile_by_tg_id(str(tg_id), session)
-    events = crud.get_event_by_event_target_id(profile.get("id"), 5, session)
+    user = crud.get_user_by_tg_id(tg_id, session)
+    if not user:
+        session.close()
+        return
+    
+    events = crud.get_event_by_event_target_id(user, 5, session)
     session.close()
 
     ans = "\n".join(["Дата: " + str(i.created_at) + "\nПричина: " + str(i.message) + "\nКол-во баллов: " +
@@ -316,16 +332,19 @@ def kpd_handler(tg_id: int) -> None:
 # profile OUTPUT METHOD
 def profile_output(tg_id: int) -> None:
     session = SessionLocal(bind=engine)
-    profile = crud.get_own_profile_by_tg_id(str(tg_id), session)
+    user = crud.get_user_by_tg_id(tg_id, session)
+    ans = "Профиль\nВаше имя - " + user.name + " " + user.sname + \
+          "\nРоль " + user.role.name + "\nБаллы КПД - " + str(user.kpd_score)
     session.close()
-    ans = "Профиль\nВаше имя - " + profile["full_name"] + \
-          "\nРоль " + profile["role"] + "\nБаллы КПД - " + str(profile.get("kpd_score"))
     bot.send_message(tg_id, ans)
 
 
 # LIST NOTIFICATION OUTPUT METHOD
 def list_notifications_output(tg_id: int) -> None:
-    raise NotImplementedError
+    session = SessionLocal(bind=engine)
+    ans = crud.get_user_by_tg_id(tg_id, session)
+    session.close()
+    bot.send_message(tg_id, ans)
 
 
 # cancel ALL NOTIFICATIONS OUTPUT METHOD
@@ -339,15 +358,19 @@ def cancel_all_notifications(tg_id: int) -> None:
 # GET LIST POSITIVE KPD
 def get_list_kpd(tg_id: int) -> None:
     session = SessionLocal(bind=engine)
-    user = crud.get_user_by_tg_id(str(tg_id), session)
-
+    user = crud.get_user_by_tg_id(tg_id, session)
+    if not user:
+        session.close()
+        return
     users = crud.get_users_with_positive_kpd(user, session)
+    session.close()
+    if not users:
+        return 
     ans = "positive KPD:\n"
     for i in users:
-        ans += i.full_name + " " + str(i.kpd_score) + "\n"
+        ans += i.name + " " + i.sname + " " + str(i.kpd_score) + "\n"
     bot.send_message(tg_id, ans)
 
-    session.close()
 
 # endregion
 

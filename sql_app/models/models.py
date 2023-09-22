@@ -13,7 +13,7 @@ load_dotenv()
 
 IS_PRODUCTION_MODE = bool(int(os.environ.get("IS_PRODUCTION_MODE")))
 
-
+Base.metadata.create_all(engine) if IS_PRODUCTION_MODE else print("DB not connected")
 
 
 # Определяем типы обратной связи
@@ -123,10 +123,10 @@ class UserTable(Base):
     kpd_score = Column(Integer, nullable=False)
 
     role_id = Column(Integer, ForeignKey("roletable.id"))
-    role = relationship("roletable", back_populates="users")
+    role = relationship("RoleTable", back_populates="users")
 
     room_id = Column(Integer, ForeignKey("roomtable.id"))
-    room = relationship("roomtable", back_populates="users")
+    room = relationship("RoomTable", back_populates="users")
 
 
 # Определяем модель для привилегий пользователей
@@ -135,7 +135,7 @@ class RoleTable(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(VARCHAR(length=32), nullable=False)
     acsess_level = Column(Integer, nullable=False)
-    users = relationship("usertable", back_populates="role")
+    users = relationship("UserTable", back_populates="role")
 
 
 class RoomTable(Base):
@@ -143,17 +143,17 @@ class RoomTable(Base):
     id = Column(Integer, primary_key=True, index=True)
     number = Column(Integer, nullable=False)
 
-    users = relationship("usertable", back_populates="room")
+    users = relationship("UserTable", back_populates="room")
 
     floor_id = Column(Integer, ForeignKey("floortable.id"))
-    floor = relationship("floortable", back_populates="rooms")
+    floor = relationship("FloorTable", back_populates="rooms")
 
 
 class FloorTable(Base):
     __tablename__ = 'floortable'
     id = Column(Integer, primary_key=True, index=True)
     number = Column(Integer, nullable=False)
-    rooms = relationship("roomtable", back_populates="floor")
+    rooms = relationship("RoomTable", back_populates="floor")
 
 
 class EventTypeTable(Base):
@@ -168,7 +168,7 @@ class ImageTable(Base):
     image_id = Column(Integer, nullable=False)
 
     event_id = Column(Integer, ForeignKey("eventlogtable.id"))
-    event = relationship("eventlogtable", back_populates="images")
+    event = relationship("EventLogTable", back_populates="images")
 
 
 # Определяем модель для событий
@@ -183,7 +183,7 @@ class EventLogTable(Base):
     event_initiator_id = Column(Integer, ForeignKey("usertable.id"))
 
     event_type_id = Column(Integer, ForeignKey("eventtypetable.id"))
-    images = relationship("imagetable", back_populates="event")
+    images = relationship("ImageTable", back_populates="event")
 
 
 # Определяем модель для уведомлений
@@ -205,9 +205,9 @@ class FeedbackTable(Base):
     id = Column(Integer, primary_key=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     message = Column(Text, nullable=False)
-    feedback_score = Column(Enum(FeedbackScore))
+    feedback_score = Column(Integer, nullable=False)
 
-    user_id = Column(Integer, ForeignKey("usertable.id"))
+    initiator_id = Column(Integer, ForeignKey("usertable.id"))
 
 
 class ThroughTable(Base):
@@ -220,4 +220,3 @@ class ThroughTable(Base):
     floor_id = Column(Integer, ForeignKey("floortable.id"))
 
 
-Base.metadata.create_all(engine) if IS_PRODUCTION_MODE else print("DB not connected")

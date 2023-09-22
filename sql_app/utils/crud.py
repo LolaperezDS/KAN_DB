@@ -3,7 +3,7 @@ from sql_app.models.models import UserTable, EventLogTable, NotificationTable, F
 
 def get_user_by_tg_id(tg_id: int, session) -> UserTable:
     try:
-        user = session.query(UserTable).filter(UserTable.tg_id == tg_id).first()
+        user = session.query(UserTable).filter(UserTable.tg_id == str(tg_id)).first()
         return user
     except Exception as e:
         session.rollback()
@@ -82,10 +82,9 @@ def authenticate(tg_id: int, login: str, password: str, session) -> bool:
     try:
         user = session.query(UserTable).filter(UserTable.password == password and UserTable.login == login).first()
         if user is None:
-            session.rollback()
-            raise Exception("User not found")
+            return False
 
-        user.tg_id = tg_id
+        user.tg_id = str(tg_id)
         session.commit()
         return True
     except Exception as e:
@@ -95,9 +94,9 @@ def authenticate(tg_id: int, login: str, password: str, session) -> bool:
         return False
 
 
-def get_tg_id_all_users(session):
+def get_tg_id_all_users(session) -> [str]:
     try:
-        users = session.query(UserTable.tg_id).filter(UserTable.role_id != 3).filter(UserTable.tg_id is not None).all()
+        users = session.query(UserTable).filter(UserTable.role.acsess_level <= 2).filter(UserTable.tg_id is not None).all()
         user_ids = [user.tg_id for user in users]
         return user_ids
     except Exception as e:
@@ -118,6 +117,24 @@ def cancel_notification_by_id(id, session):
         ntf = session.query(NotificationTable).filter(NotificationTable.id == id).first()
         ntf.is_notificated = True
         session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+
+
+def get_event_by_event_target_id(user: UserTable, count: int, session):
+    try:
+        if count < 1 or count > 50:
+            return
+        events = session.query(EventLogTable).filter(EventLogTable.event_target_id == user.id).limit(count)
+    except Exception as e:
+        session.rollback()
+        raise e
+
+
+def get_all_not_notified(session) -> [NotificationTable]:
+    try:
+        return session.query(NotificationTable).filter(not NotificationTable.is_notificated)
     except Exception as e:
         session.rollback()
         raise e
