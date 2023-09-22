@@ -30,10 +30,29 @@ def is_free(tg_id: str) -> bool:
         return True
     return False
 
+def del_hist(message):
+    chat_id = message.chat.id
+    message_id = message.message_id
+    for i in range(message_id, message_id - 10, -1):
+        try:
+            bot.delete_message(chat_id, i)
+        except BaseException:
+            pass
 
 # region Main node
 @bot.message_handler(func=lambda message: True)
 def message_handler(message):
+    chat_id = message.chat.id
+    message_id = message.message_id
+    deleted = 0
+    for i in range(message_id, message_id - 10, -1):
+        try:
+            bot.delete_message(chat_id, i)
+            deleted += 1
+        except BaseException:
+            pass
+    print(deleted)
+
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
         user = crud.get_user_by_tg_id(message.from_user.id, session)
@@ -232,7 +251,7 @@ def old_password_checker(tg_id: int):
 def change_password_handler(message):
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(str(message.from_user.id), session)
+        user = crud.get_user_by_tg_id(message.from_user.id, session)
         session.close()
 
         old_pwd = message.text
@@ -264,13 +283,19 @@ def change_password_final(message):
     if IS_PRODUCTION_MODE:
         new_pwd = message.text
         session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(str(message.from_user.id), session)
-        crud.change_password(new_pwd, user, session)
-        session.close()
+        user = crud.get_user_by_tg_id(message.from_user.id, session)
+        try:
+            crud.change_password(new_pwd, user, session)
+            bot.delete_message(message.chat.id, message.id)
+            bot.send_message(message.from_user.id,
+                            "Пароль успешно изменён.")
+        except BaseException:
+            bot.delete_message(message.chat.id, message.id)
+            bot.send_message(message.from_user.id,
+                                "Возникли проблемы смены пароля.")
+        finally:
+            session.close()
 
-    bot.delete_message(message.chat.id, message.id)
-    bot.send_message(message.from_user.id,
-                     "Пароль успешно изменён.")
 # endregion
 
 

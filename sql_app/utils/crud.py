@@ -51,17 +51,14 @@ def create_feedback(feedback: FeedbackTable, session):
 
 
 # Смена своего пароля после авторизации
-def change_password(new_password: str, current_user: UserTable, session):
+def change_password(new_password: str, current_user: UserTable, session) -> bool:
     try:
         user = session.query(UserTable).filter(UserTable.id == current_user.id).first()
         user.password = new_password
         session.commit()
-        return True
     except Exception as e:
         session.rollback()
         raise e
-    finally:
-        return False
 
 
 # Деаутентификация со всех аккаунтов после авторизации
