@@ -25,40 +25,33 @@ class FeedbackScore(enum.Enum):
 
 
 """
-
-
 CREATE TABLE UserTable(
   id SERIAL PRIMARY KEY,
   is_active bool NOT NULL,
-  tg_id VARCHAR(50) UNIQUE,
-  login VARCHAR(50) NOT NULL UNIQUE,
-  password TEXT NOT NULL,
-  full_name TEXT NOT NULL,
+  tg_id VARCHAR(32) UNIQUE,
+  login VARCHAR(32) NOT NULL UNIQUE,
+  password VARCHAR(64) NOT NULL,
+  name VARCHAR(32) NOT NULL,
+  sname VARCHAR(32) NOT NULL,
   kpd_score integer NOT NULL
 );
 
 CREATE TABLE RoleTable(
   id SERIAL PRIMARY KEY,
-  privilege TEXT
-);
-
-CREATE TABLE EventLogTable(
-  id SERIAL PRIMARY KEY,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  event_type TEXT NOT NULL,
-  message TEXT NOT NULL,
-  kpd_diff integer NOT NULL,
-  event_target_id integer NOT NULL
+  name VARCHAR(64) NOT NULL,
+  acsess_level integer NOT NULL
 );
 
 
-CREATE TABLE NotificationTable(
+CREATE TABLE FloorTable(
   id SERIAL PRIMARY KEY,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  remind_hours integer NOT NULL,
-  message TEXT NOT NULL,
-  is_notificated bool NOT NULL DEFAULT FALSE
+  number integer NOT NULL
+);
+
+
+CREATE TABLE RoomTable(
+  id SERIAL PRIMARY KEY,
+  number VARCHAR(8) NOT NULL
 );
 
 
@@ -69,11 +62,52 @@ CREATE TABLE FeedbackTable(
   feedback_score integer
 );
 
+CREATE TABLE EventTypeTable(
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(32) NOT NULL
+);
 
-ALTER TABLE UserTable ADD role_id integer REFERENCES roletable(id);
+CREATE TABLE EventLogTable(
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  message TEXT NOT NULL,
+  kpd_diff integer NOT NULL,
+  event_target_id integer NOT NULL
+);
+
+CREATE TABLE ImageTable(
+  id SERIAL PRIMARY KEY,
+  image_id integer NOT NULL
+);
+
+CREATE TABLE NotificationTable(
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  remind_hours integer NOT NULL,
+  message TEXT NOT NULL,
+  is_notificated bool NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE ThroughTable(
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  is_done bool NOT NULL DEFAULT FALSE
+);
+
+
+ALTER TABLE UserTable ADD role_id integer REFERENCES RoleTable(id);
+ALTER TABLE UserTable ADD room_id integer REFERENCES RoomTable(id);
+ALTER TABLE RoomTable ADD floor_id integer REFERENCES FloorTable(id);
+
+ALTER TABLE FeedbackTable ADD initiator_id integer REFERENCES UserTable(id);
 ALTER TABLE EventLogTable ADD event_initiator_id integer REFERENCES UserTable(id);
+ALTER TABLE EventLogTable ADD event_type_id integer REFERENCES EventTypeTable(id);
+
 ALTER TABLE NotificationTable ADD initiator_id integer REFERENCES UserTable(id);
-ALTER TABLE FeedbackTable ADD user_id integer REFERENCES UserTable(id);
+ALTER TABLE ThroughTable ADD initiator_id integer REFERENCES UserTable(id);
+ALTER TABLE ThroughTable ADD floor_id integer REFERENCES FloorTable(id);
+
 """
 
 
@@ -82,22 +116,58 @@ class UserTable(Base):
     __tablename__ = 'usertable'
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
     is_active = Column(Boolean, nullable=False)
-    tg_id = Column(VARCHAR(length=50), unique=True)
-    login = Column(VARCHAR(length=50), nullable=False, unique=True)
-    password = Column(String, nullable=False)
-    full_name = Column(String, nullable=False)
+    tg_id = Column(VARCHAR(length=32), unique=True)
+    login = Column(VARCHAR(length=32), nullable=False, unique=True)
+    password = Column(VARCHAR(length=64), nullable=False)
+    name = Column(VARCHAR(length=32), nullable=False)
+    sname = Column(VARCHAR(length=32), nullable=False)
     kpd_score = Column(Integer, nullable=False)
 
     role_id = Column(Integer, ForeignKey("roletable.id"))
-    role = relationship("RoleTable", foreign_keys=[role_id])
+    role = relationship("roletable", back_populates="name")
+
+    room_id = Column(Integer, ForeignKey("roomtable.id"))
+    room = relationship("roomtable", back_populates="number")
 
 
 # Определяем модель для привилегий пользователей
 class RoleTable(Base):
     __tablename__ = 'roletable'
     id = Column(Integer, primary_key=True, index=True)
-    privilege = Column(String, index=True)
+    name = Column(VARCHAR(length=32), nullable=False)
+    acsess_level = Column(Integer, nullable=False)
+    users = relationship("usertable", back_populates="role")
 
+
+class RoomTable(Base):
+    __tablename__ = 'roomtable'
+    id = Column(Integer, primary_key=True, index=True)
+    number = Column(Integer, nullable=False)
+
+    floor_id = Column(Integer, ForeignKey("floortable.id"))
+    floor = relationship("floortable", back_populates="rooms")
+
+
+class FloorTable(Base):
+    __tablename__ = 'floortable'
+    id = Column(Integer, primary_key=True, index=True)
+    number = Column(Integer, nullable=False)
+    rooms = relationship("roomtable", back_populates="floor")
+
+
+class EventTypeTable(Base):
+    __tablename__ = 'eventtypetable'
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(VARCHAR(length=32), nullable=False)
+
+
+class ImageTable(Base):
+    __tablename__ = 'imagetable'
+    id = Column(Integer, primary_key=True, index=True)
+    image_id = Column(Integer, nullable=False)
+
+    event_id = Column(Integer, ForeignKey("eventlogtable.id"))
+    event = relationship("eventlogtable", back_populates="images")
 
 
 # Определяем модель для событий
@@ -105,12 +175,14 @@ class EventLogTable(Base):
     __tablename__ = 'eventlogtable'
     id = Column(Integer, primary_key=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    event_type = Column(String, nullable=False)
     message = Column(Text, nullable=False)
     kpd_diff = Column(Integer, nullable=False)
 
     event_target_id = Column(Integer)
     event_initiator_id = Column(Integer, ForeignKey("usertable.id"))
+
+    event_type_id = Column(Integer, ForeignKey("eventtypetable.id"))
+    images = relationship("imagetable", back_populates="event")
 
 
 # Определяем модель для уведомлений
@@ -135,3 +207,13 @@ class FeedbackTable(Base):
     feedback_score = Column(Enum(FeedbackScore))
 
     user_id = Column(Integer, ForeignKey("usertable.id"))
+
+
+class ThroughTable(Base):
+    __tablename__ = 'throughtable'
+    id = Column(Integer, primary_key=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    is_active = Column(Boolean, nullable=False)
+
+    initiator_id = Column(Integer, ForeignKey("usertable.id"))
+    floor_id = Column(Integer, ForeignKey("floortable.id"))
