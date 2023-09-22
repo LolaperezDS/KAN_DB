@@ -14,7 +14,6 @@ load_dotenv()
 IS_PRODUCTION_MODE = bool(int(os.environ.get("IS_PRODUCTION_MODE")))
 
 
-Base.metadata.create_all(engine) if IS_PRODUCTION_MODE else print("DB not connected")
 
 
 # Определяем типы обратной связи
@@ -124,10 +123,10 @@ class UserTable(Base):
     kpd_score = Column(Integer, nullable=False)
 
     role_id = Column(Integer, ForeignKey("roletable.id"))
-    role = relationship("roletable", back_populates="name")
+    role = relationship("roletable", back_populates="users")
 
     room_id = Column(Integer, ForeignKey("roomtable.id"))
-    room = relationship("roomtable", back_populates="number")
+    room = relationship("roomtable", back_populates="users")
 
 
 # Определяем модель для привилегий пользователей
@@ -143,6 +142,8 @@ class RoomTable(Base):
     __tablename__ = 'roomtable'
     id = Column(Integer, primary_key=True, index=True)
     number = Column(Integer, nullable=False)
+
+    users = relationship("usertable", back_populates="room")
 
     floor_id = Column(Integer, ForeignKey("floortable.id"))
     floor = relationship("floortable", back_populates="rooms")
@@ -217,3 +218,6 @@ class ThroughTable(Base):
 
     initiator_id = Column(Integer, ForeignKey("usertable.id"))
     floor_id = Column(Integer, ForeignKey("floortable.id"))
+
+
+Base.metadata.create_all(engine) if IS_PRODUCTION_MODE else print("DB not connected")

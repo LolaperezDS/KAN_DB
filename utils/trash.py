@@ -31,7 +31,7 @@ user_data = {
 session.query(EventLogTable).delete()
 session.query(UserTable).delete()
 session.query(NotificationTable).delete()
-# session.query(FeedbackTable).delete()
+session.query(FeedbackTable).delete()
 session.commit()
 """
 Габитов Данил Димович @Da_da_nil 30

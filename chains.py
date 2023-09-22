@@ -17,6 +17,16 @@ bot = telebot.TeleBot(token)
 
 sessions_feedback: dict[str, models.FeedbackTable] = {}
 sessions_event: dict[str, models.EventLogTable] = {}
+session_through: dict[str, models.ThroughTable] = {}
+session_notify: dict[str, models.NotificationTable] = {}
+
+def is_free(tg_id: str) -> bool:
+    if tg_id not in session_notify and \
+       tg_id not in sessions_event and \
+       tg_id not in session_through and \
+       tg_id not in session_notify:
+        return True
+    return False
 
 
 # region Main node
@@ -33,13 +43,13 @@ def message_handler(message):
             user = None
     if user is None:
         auth_query(message)
-    elif user.role_id == 3:
+    elif user.role.acsess_level >= 3:
         bot.send_message(message.chat.id, "Основное меню администратора:",
                          reply_markup=markups.gen_admin())
-    elif user.role_id == 2:
+    elif user.role.acsess_level == 2:
         bot.send_message(message.chat.id, "Основное меню модератора:",
                          reply_markup=markups.gen_moder_main())
-    elif user.role_id == 1:
+    elif user.role.acsess_level <= 1:
         bot.send_message(message.chat.id, "Основное меню:",
                          reply_markup=markups.gen_stud())
     else:
@@ -48,6 +58,9 @@ def message_handler(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    if not is_free(call.from_user.id):
+        return
+    
     if call.data == "profile":
         profile_output(call.from_user.id)
     elif call.data == "kpd":
