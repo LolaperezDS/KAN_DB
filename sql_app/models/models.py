@@ -76,7 +76,7 @@ CREATE TABLE EventLogTable(
 
 CREATE TABLE ImageTable(
   id SERIAL PRIMARY KEY,
-  image_id integer NOT NULL
+  image_id VARCHAR(128) NOT NULL
 );
 
 CREATE TABLE NotificationTable(
@@ -165,7 +165,7 @@ class EventTypeTable(Base):
 class ImageTable(Base):
     __tablename__ = 'imagetable'
     id = Column(Integer, primary_key=True, index=True)
-    image_id = Column(Integer, nullable=False)
+    image_id = Column(VARCHAR(length=128), nullable=False)
 
     event_id = Column(Integer, ForeignKey("eventlogtable.id"))
     event = relationship("EventLogTable", back_populates="images")

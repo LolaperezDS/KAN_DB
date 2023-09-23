@@ -136,8 +136,6 @@ def get_all_not_notified(session) -> [NotificationTable]:
         session.rollback()
         raise e
 
-def insert_image(image: ImageTable, event: EventLogTable, session) -> None:
-    pass
 
 def get_all_event_types(session):
     try:

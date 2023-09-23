@@ -42,18 +42,35 @@ def del_hist(message, count=5):
         except BaseException:
             pass
 
+def sort_file_signatures(photo: [str]) -> [str]:
+    set_of_signatures = set()
+    ans_list = []
+    for i in photo:
+        if i.split("-")[0] not in set_of_signatures:
+            set_of_signatures.add(i.split("-")[0])
+            ans_list.append(i)
+    return ans_list
+
 # region Main node
 @bot.message_handler(func=lambda message: True)
 def message_handler(message):
-    # del_hist(message)
-    if IS_PRODUCTION_MODE:
+    if message.text == "tf":
+
         session = SessionLocal(bind=engine)
+        photos = session.query(models.ImageTable).all()
+        for i in photos:
+            bot.send_photo(message.chat.id, i.image_id)
+
+        session.close()
+        return
+
+    session = SessionLocal(bind=engine)
+    user = None
+    if IS_PRODUCTION_MODE:
         user = crud.get_user_by_tg_id(message.from_user.id, session)
     else:
         if input("is authed? y/n") == "y":
             user = models.UserTable(role_id=int(input("test role:")), full_name="TESTNAME")
-        else:
-            user = None
     if user is None:
         auth_query(message)
     elif user.role.acsess_level >= 3:
@@ -67,6 +84,7 @@ def message_handler(message):
                          reply_markup=markups.gen_stud())
     else:
         print("unhandled role ```message_handler```")
+    
     session.close()
 
 
@@ -159,13 +177,27 @@ def set_kpd_type_getter(message, e_types: [models.EventTypeTable] = None) -> Non
     if event:
         event.event_type_id = e_types[int(message.text)].id
         sessions_event.update({str(message.from_user.id): event})
-        send = bot.send_message(message.from_user.id, "Напишите развёрнуто причину")
-        bot.register_next_step_handler(send, set_kpd_message_getter)
+        send = bot.send_message(message.from_user.id, "Приложите фото")
+        bot.register_next_step_handler(send, set_kpd_images)
     else:
         return
 
 
-def set_kpd_message_getter(message) -> None:
+def set_kpd_images(message) -> None:
+    if not message.photo:
+        send = bot.send_message(message.from_user.id, "Приложите фото")
+        bot.register_next_step_handler(send, set_kpd_images)
+        if str(message.from_user.id) in sessions_event:
+            sessions_event.pop(str(message.from_user.id))
+        return
+    
+    photo_ids = sort_file_signatures([photo.file_id for photo in message.photo])
+
+    send = bot.send_message(message.from_user.id, "Напишите развёрнуто причину")
+    bot.register_next_step_handler(send, set_kpd_message_getter, photo_ids=photo_ids)
+
+
+def set_kpd_message_getter(message, photo_ids: [str]) -> None:
     event: models.EventLogTable = None
     try:
         event = sessions_event.get(str(message.from_user.id))
@@ -178,12 +210,12 @@ def set_kpd_message_getter(message) -> None:
         event.message = message.text
         sessions_event.update({str(message.from_user.id): event})
         send = bot.send_message(message.from_user.id, "Напишите количество баллов")
-        bot.register_next_step_handler(send, set_kpd_deff_score_getter)
+        bot.register_next_step_handler(send, set_kpd_deff_score_getter, photo_ids=photo_ids)
     else:
         return
 
 
-def set_kpd_deff_score_getter(message) -> None:
+def set_kpd_deff_score_getter(message, photo_ids: [str]) -> None:
     event: models.EventLogTable = None
     try:
         event = sessions_event.get(str(message.from_user.id))
@@ -199,6 +231,9 @@ def set_kpd_deff_score_getter(message) -> None:
         event.kpd_diff = int(message.text)
         session.add(event)
         session.commit()
+        for id in photo_ids:
+            session.add(models.ImageTable(image_id=id,
+                                          event_id=event.id))
         session.close()
         sessions_event.pop(str(message.from_user.id))
     bot.send_message(message.from_user.id, "Готово!")
