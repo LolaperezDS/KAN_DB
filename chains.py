@@ -1,4 +1,5 @@
 import telebot
+from telebot.types import MessageAutoDeleteTimerChanged
 import markups
 import sql_app.utils.crud as crud
 import sql_app.models.models as models
@@ -21,6 +22,8 @@ session_through: dict[str, models.ThroughTable] = {}
 session_notify: dict[str, models.NotificationTable] = {}
 session_auth: dict[str, str] = {}
 
+session_messages_to_clean: dict[str, None]
+
 def is_free(tg_id: str) -> bool:
     if tg_id not in session_notify and \
        tg_id not in sessions_event and \
@@ -30,10 +33,10 @@ def is_free(tg_id: str) -> bool:
         return True
     return False
 
-def del_hist(message):
+def del_hist(message, count=5):
     chat_id = message.chat.id
     message_id = message.message_id
-    for i in range(message_id, message_id - 10, -1):
+    for i in range(message_id, message_id - count, -1):
         try:
             bot.delete_message(chat_id, i)
         except BaseException:
@@ -42,17 +45,7 @@ def del_hist(message):
 # region Main node
 @bot.message_handler(func=lambda message: True)
 def message_handler(message):
-    chat_id = message.chat.id
-    message_id = message.message_id
-    deleted = 0
-    for i in range(message_id, message_id - 10, -1):
-        try:
-            bot.delete_message(chat_id, i)
-            deleted += 1
-        except BaseException:
-            pass
-    print(deleted)
-
+    # del_hist(message)
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
         user = crud.get_user_by_tg_id(message.from_user.id, session)
@@ -124,33 +117,47 @@ def callback_query(call):
 # region Chains
 # region Set KPD chain
 def set_kpd_chain(tg_id: int) -> None:
-    send = bot.send_message(tg_id, "Напишите Фио студента:")
+    send = bot.send_message(tg_id, "Напишите имя  фамилию студента через пробел:")
     bot.register_next_step_handler(send, set_kpd_fullname_getter)
 
 
 def set_kpd_fullname_getter(message) -> None:
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
-        user = crud.get_user_by_full_name(message.text, session)
-        user_initiator = crud.get_user_by_tg_id(str(message.from_user.id), session)
+        user = crud.get_user_by_name(message.text.split()[0], message.text.split()[1], session)
+        user_initiator = crud.get_user_by_tg_id(message.from_user.id, session)
+        event_types = crud.get_all_event_types(session)
         session.close()
         if user:
             sessions_event.update({str(message.from_user.id): models.EventLogTable(event_target_id=user.id,
                                                                                    event_initiator_id=user_initiator.id)})
+        else:
+            if str(message.from_user.id) in sessions_event:
+                sessions_event.pop(str(message.from_user.id))
+            bot.send_message(message.from_user.id, "Студент не найден.")
+            return
     else:
         user = models.UserTable(full_name="TEST TEST")
+    
+    answer: str = "Выберите тип причины:"
+    for i in range(len(event_types)):
+        answer += "\n[" + str(i) + "]" + event_types[i].name
+    send = bot.send_message(message.from_user.id, answer)
+    bot.register_next_step_handler(send, set_kpd_type_getter, e_types=event_types)
 
-    if not user:
-        bot.send_message(message.from_user.id, "Студент с таким фио не найден.")
+
+def set_kpd_type_getter(message, e_types: [models.EventTypeTable] = None) -> None:
+    event: models.EventLogTable = None
+    try:
+        event = sessions_event.get(str(message.from_user.id))
+        int(message.text)
+    except BaseException:
+        if str(message.from_user.id) in sessions_event:
+            sessions_event.pop(str(message.from_user.id))
         return
-    send = bot.send_message(message.from_user.id, "Напишите кратко суть изменения баллов КПД")
-    bot.register_next_step_handler(send, set_kpd_type_getter)
 
-
-def set_kpd_type_getter(message) -> None:
-    event = sessions_event.get(str(message.from_user.id))
     if event:
-        event.event_type = message.text
+        event.event_type_id = e_types[int(message.text)].id
         sessions_event.update({str(message.from_user.id): event})
         send = bot.send_message(message.from_user.id, "Напишите развёрнуто причину")
         bot.register_next_step_handler(send, set_kpd_message_getter)
@@ -159,7 +166,14 @@ def set_kpd_type_getter(message) -> None:
 
 
 def set_kpd_message_getter(message) -> None:
-    event = sessions_event.get(str(message.from_user.id))
+    event: models.EventLogTable = None
+    try:
+        event = sessions_event.get(str(message.from_user.id))
+    except BaseException:
+        if str(message.from_user.id) in sessions_event:
+            sessions_event.pop(str(message.from_user.id))
+        return
+    
     if event:
         event.message = message.text
         sessions_event.update({str(message.from_user.id): event})
@@ -170,18 +184,19 @@ def set_kpd_message_getter(message) -> None:
 
 
 def set_kpd_deff_score_getter(message) -> None:
-    event = sessions_event.get(str(message.from_user.id))
-
-    session = SessionLocal(bind=engine)
-    subj_user = session.query(models.UserTable).filter(models.UserTable.id == event.event_target_id).first()
-    setattr(subj_user, "kpd_score", subj_user.kpd_score + int(message.text))
-
-    session.commit()
-    session.close()
-
+    event: models.EventLogTable = None
+    try:
+        event = sessions_event.get(str(message.from_user.id))
+    except BaseException:
+        if str(message.from_user.id) in sessions_event:
+            sessions_event.pop(str(message.from_user.id))
+        return
+    
     if event:
-        event.kpd_diff = int(message.text)
         session = SessionLocal(bind=engine)
+        subj_user = session.query(models.UserTable).filter(models.UserTable.id == event.event_target_id).first()
+        subj_user.kpd_score += int(message.text)
+        event.kpd_diff = int(message.text)
         session.add(event)
         session.commit()
         session.close()

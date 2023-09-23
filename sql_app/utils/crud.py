@@ -1,4 +1,4 @@
-from sql_app.models.models import UserTable, EventLogTable, NotificationTable, FeedbackTable, FeedbackScore
+from sql_app.models.models import UserTable, EventTypeTable, EventLogTable, NotificationTable, FeedbackTable, FeedbackScore, ImageTable, RoleTable
 
 
 def get_user_by_tg_id(tg_id: int, session) -> UserTable:
@@ -22,7 +22,7 @@ def get_users_with_positive_kpd(current_user: UserTable, session) -> [UserTable]
     if (current_user.role.acsess_level < 2):
         return None
     try:
-        users = session.query(UserTable).filter(UserTable.role.acsess_level < 3, UserTable.kpd_score > 0).all()
+        users = session.query(UserTable).filter(UserTable.kpd_score > 0).all()
         return users
     except Exception as e:
         session.rollback()
@@ -132,6 +132,16 @@ def get_event_by_event_target_id(user: UserTable, count: int, session):
 def get_all_not_notified(session) -> [NotificationTable]:
     try:
         return session.query(NotificationTable).filter(not NotificationTable.is_notificated)
+    except Exception as e:
+        session.rollback()
+        raise e
+
+def insert_image(image: ImageTable, event: EventLogTable, session) -> None:
+    pass
+
+def get_all_event_types(session):
+    try:
+        return session.query(EventTypeTable).all()
     except Exception as e:
         session.rollback()
         raise e

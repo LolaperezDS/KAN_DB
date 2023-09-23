@@ -1,14 +1,21 @@
 import telebot
-import sql_app.utils.crud as crud
-
-from sql_app.models.models import FeedbackScore
-
-from sql_app.database.database import SessionLocal, engine
 
 
-token = "6012918807:AAGmDv1adk0ic1RtlUuDgCbdCnS0QoYP9Dc"
+token = ""
 bot = telebot.TeleBot(token)
 
+@bot.message_handler(func=lambda message: True)
+def message_handler(message):
+    message_count = 100  # Например, получим последние 100 сообщений
+
+# Получаем историю сообщений
+    messages = bot.get_messages(message.chat_id, limit=message_count)
+
+# Выводим сообщения
+    for message in messages:
+        print(f"{message.date} - {message.from_user.username}: {message.text}")
+
+"""
 @bot.message_handler(commands=['start'])
 def start_message(message):
     print(message.text)
@@ -223,5 +230,5 @@ def delete_user_message(message):
     pass
 #-----------------------------------
 
-
+"""
 bot.infinity_polling()
