@@ -106,7 +106,7 @@ ALTER TABLE EventLogTable ADD event_type_id integer REFERENCES EventTypeTable(id
 ALTER TABLE NotificationTable ADD initiator_id integer REFERENCES UserTable(id);
 ALTER TABLE ThroughTable ADD initiator_id integer REFERENCES UserTable(id);
 ALTER TABLE ThroughTable ADD floor_id integer REFERENCES FloorTable(id);
-
+ALTER TABLE ImageTable ADD event_id integer REFERENCES EventLogTable(id);
 """
 
 
