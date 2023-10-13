@@ -24,6 +24,8 @@ session_auth: dict[str, str] = {}
 
 session_messages_to_clean: dict[str, None]
 
+# region Functions
+# O(1) avg
 def is_free(tg_id: str) -> bool:
     if tg_id not in session_notify and \
        tg_id not in sessions_event and \
@@ -42,6 +44,7 @@ def del_hist(message, count=5):
         except BaseException:
             pass
 
+# O(n) avg
 def sort_file_signatures(photo: [str]) -> [str]:
     set_of_signatures = set()
     ans_list = []
@@ -50,6 +53,7 @@ def sort_file_signatures(photo: [str]) -> [str]:
             set_of_signatures.add(i.split("-")[0])
             ans_list.append(i)
     return ans_list
+# endregion
 
 # region Main node
 @bot.message_handler(func=lambda message: True)
@@ -112,7 +116,7 @@ def callback_query(call):
         bot.send_message(call.from_user.id, "Основное меню модератора:",
                          reply_markup=markups.gen_moder_main())
     elif call.data == "get_other_profile":
-        raise NotImplementedError
+        get_other_profile(call.from_user.id)
     elif call.data == "get_list_kpd":
         get_list_kpd(call.from_user.id)
     elif call.data == "notification_menu":
@@ -133,16 +137,43 @@ def callback_query(call):
 
 
 # region Chains
+# region Get Profile
+def get_other_profile(tg_id: int) -> None:
+    send = bot.send_message(tg_id, "Напишите номер блока:")
+    bot.register_next_step_handler(send, print_other_profiles)
+
+
+def print_other_profiles(message):
+    answer = ""
+    if not message.text[0:3:].isdigit() or not message.text[3].isalpha():
+        bot.send_message(message.from_user.id, "Некорректный ввод")
+        return
+    session = SessionLocal(bind=engine)
+    room = session.query(models.RoomTable).filter(models.RoomTable.number == message.text.strip())
+    if not room:
+        bot.send_message(message.from_user.id, "Некорректный ввод")
+        session.close()
+        return
+    users = session.query(models.UserTable).filter
+
+    session.close()
+    bot.send_message(message.from_user.id, answer)
+# endregion
+
+
 # region Set KPD chain
 def set_kpd_chain(tg_id: int) -> None:
-    send = bot.send_message(tg_id, "Напишите имя  фамилию студента через пробел:")
+    send = bot.send_message(tg_id, "Напишите номер студ билета:")
     bot.register_next_step_handler(send, set_kpd_fullname_getter)
 
 
 def set_kpd_fullname_getter(message) -> None:
+    if not message.text.isdigit():
+        send = bot.send_message(message.from_user.id, "Incorrect input")
+        return
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
-        user = crud.get_user_by_name(message.text.split()[0], message.text.split()[1], session)
+        user = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text))
         user_initiator = crud.get_user_by_tg_id(message.from_user.id, session)
         event_types = crud.get_all_event_types(session)
         session.close()
@@ -417,7 +448,8 @@ def profile_output(tg_id: int) -> None:
 # LIST NOTIFICATION OUTPUT METHOD
 def list_notifications_output(tg_id: int) -> None:
     session = SessionLocal(bind=engine)
-    ans = crud.get_user_by_tg_id(tg_id, session)
+    user = crud.get_user_by_tg_id(tg_id, session)
+    ans = crud.get_all_not_notified(user, session=session)
     session.close()
     bot.send_message(tg_id, ans)
 
@@ -443,7 +475,7 @@ def get_list_kpd(tg_id: int) -> None:
         return 
     ans = "positive KPD:\n"
     for i in users:
-        ans += i.name + " " + i.sname + " " + str(i.kpd_score) + "\n"
+        ans += str(i.student_id) + i.name + " " + i.sname + " " + str(i.kpd_score) + "\n"
     bot.send_message(tg_id, ans)
 
 

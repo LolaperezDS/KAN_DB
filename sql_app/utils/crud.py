@@ -77,7 +77,7 @@ def deauthenticate(current_user: UserTable, session) -> bool:
 # Авторизация (привязка ID после ввода пароля)
 def authenticate(tg_id: int, login: str, password: str, session) -> bool:
     try:
-        user = session.query(UserTable).filter(UserTable.password == password and UserTable.login == login).first()
+        user = session.query(UserTable).filter(UserTable.password == password).filter(UserTable.login == login).first()
         if user is None:
             return False
 
@@ -101,10 +101,17 @@ def get_tg_id_all_users(session) -> [str]:
         raise e
 
 
-def get_all_not_notified(session):
+def get_all_not_notified(user: UserTable, session):
     try:
-        ntf = session.query(NotificationTable).filter(NotificationTable.is_notificated == False).all()
-        return ntf
+        if user.role.acsess_level < 2:
+            return
+        ans = ""
+        ntf: NotificationTable = session.query(NotificationTable).filter(NotificationTable.is_notificated == False).all()
+        for notification in ntf:
+            ans += str(notification.id) + " " + notification.message + " " + str(notification.event_date)
+        if not ans:
+            ans = "Нет актуальных событий"
+        return ans
     except Exception as e:
         raise e
 
