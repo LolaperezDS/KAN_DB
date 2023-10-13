@@ -10,8 +10,8 @@
 - [ ] add notification crud function
 - [ ] add interface to add notificaton
 - [ ] add delete notification crud function
-- [ ] add output notification crud function
-- [ ] add cancel all notification method
+- [X] add output notification crud function
+- [X] add cancel all notification method
 - [ ] add to delete interface notificaton
 - [ ] complete notify system (LT)
 
