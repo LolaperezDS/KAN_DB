@@ -15,10 +15,16 @@
 - [ ] add to delete interface notificaton
 - [ ] complete notify system (LT)
 
-- [ ] LIST NOTIFICATION OUTPUT METHOD
-- [ ] cancel ALL NOTIFICATIONS OUTPUT METHOD
+- [X] LIST NOTIFICATION OUTPUT METHOD
+- [X] cancel ALL NOTIFICATIONS OUTPUT METHOD
 
 - [ ] Out last [x] kpd by user id [n] with pictures
 - [ ] Add find people chain
 
 - [ ] print_other_profiles
+
+
+By ObjegaStuff
+- [ ] info text
+- [ ] students database
+- [ ] server

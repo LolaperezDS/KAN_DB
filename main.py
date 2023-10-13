@@ -448,7 +448,8 @@ def profile_output(tg_id: int) -> None:
 # LIST NOTIFICATION OUTPUT METHOD
 def list_notifications_output(tg_id: int) -> None:
     session = SessionLocal(bind=engine)
-    ans = crud.get_user_by_tg_id(tg_id, session)
+    user = crud.get_user_by_tg_id(tg_id, session)
+    ans = crud.get_all_not_notified(user, session=session)
     session.close()
     bot.send_message(tg_id, ans)
 
