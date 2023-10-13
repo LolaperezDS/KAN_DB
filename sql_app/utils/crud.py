@@ -77,7 +77,7 @@ def deauthenticate(current_user: UserTable, session) -> bool:
 # Авторизация (привязка ID после ввода пароля)
 def authenticate(tg_id: int, login: str, password: str, session) -> bool:
     try:
-        user = session.query(UserTable).filter(UserTable.password == password and UserTable.login == login).first()
+        user = session.query(UserTable).filter(UserTable.password == password).filter(UserTable.login == login).first()
         if user is None:
             return False
 

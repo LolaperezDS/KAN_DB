@@ -23,97 +23,11 @@ class FeedbackScore(enum.Enum):
     cool = 3
 
 
-"""
-CREATE TABLE UserTable(
-  id SERIAL PRIMARY KEY,
-  is_active bool NOT NULL,
-  tg_id VARCHAR(32) UNIQUE,
-  login VARCHAR(32) NOT NULL UNIQUE,
-  password VARCHAR(64) NOT NULL,
-  name VARCHAR(32) NOT NULL,
-  sname VARCHAR(32) NOT NULL,
-  kpd_score integer NOT NULL
-);
-
-CREATE TABLE RoleTable(
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(64) NOT NULL,
-  acsess_level integer NOT NULL
-);
-
-
-CREATE TABLE FloorTable(
-  id SERIAL PRIMARY KEY,
-  number integer NOT NULL
-);
-
-
-CREATE TABLE RoomTable(
-  id SERIAL PRIMARY KEY,
-  number VARCHAR(8) NOT NULL
-);
-
-
-CREATE TABLE FeedbackTable(
-  id SERIAL PRIMARY KEY,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  message TEXT NOT NULL,
-  feedback_score integer
-);
-
-CREATE TABLE EventTypeTable(
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(32) NOT NULL
-);
-
-CREATE TABLE EventLogTable(
-  id SERIAL PRIMARY KEY,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  message TEXT NOT NULL,
-  kpd_diff integer NOT NULL,
-  event_target_id integer NOT NULL
-);
-
-CREATE TABLE ImageTable(
-  id SERIAL PRIMARY KEY,
-  image_id VARCHAR(128) NOT NULL
-);
-
-CREATE TABLE NotificationTable(
-  id SERIAL PRIMARY KEY,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  remind_hours integer NOT NULL,
-  message TEXT NOT NULL,
-  is_notificated bool NOT NULL DEFAULT FALSE
-);
-
-CREATE TABLE ThroughTable(
-  id SERIAL PRIMARY KEY,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  is_done bool NOT NULL DEFAULT FALSE
-);
-
-
-ALTER TABLE UserTable ADD role_id integer REFERENCES RoleTable(id);
-ALTER TABLE UserTable ADD room_id integer REFERENCES RoomTable(id);
-ALTER TABLE RoomTable ADD floor_id integer REFERENCES FloorTable(id);
-
-ALTER TABLE FeedbackTable ADD initiator_id integer REFERENCES UserTable(id);
-ALTER TABLE EventLogTable ADD event_initiator_id integer REFERENCES UserTable(id);
-ALTER TABLE EventLogTable ADD event_type_id integer REFERENCES EventTypeTable(id);
-
-ALTER TABLE NotificationTable ADD initiator_id integer REFERENCES UserTable(id);
-ALTER TABLE ThroughTable ADD initiator_id integer REFERENCES UserTable(id);
-ALTER TABLE ThroughTable ADD floor_id integer REFERENCES FloorTable(id);
-ALTER TABLE ImageTable ADD event_id integer REFERENCES EventLogTable(id);
-"""
-
-
 # Определяем модель для свойств пользователей
 class UserTable(Base):
     __tablename__ = 'usertable'
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
+    student_id = Column(Integer, nullable=False, unique=True)
     is_active = Column(Boolean, nullable=False)
     tg_id = Column(VARCHAR(length=32), unique=True)
     login = Column(VARCHAR(length=32), nullable=False, unique=True)
@@ -141,7 +55,7 @@ class RoleTable(Base):
 class RoomTable(Base):
     __tablename__ = 'roomtable'
     id = Column(Integer, primary_key=True, index=True)
-    number = Column(Integer, nullable=False)
+    number = Column(VARCHAR(length=8), nullable=False)
 
     users = relationship("UserTable", back_populates="room")
 
