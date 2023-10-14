@@ -32,7 +32,8 @@ def gen_moder_panel() -> InlineKeyboardMarkup:
     markup.add(InlineKeyboardButton("Поставить КПД", callback_data="set_kpd"),
                InlineKeyboardButton("Предыдущее меню", callback_data="return_m"),
                InlineKeyboardButton("Профиль человека", callback_data="get_other_profile"),
-               InlineKeyboardButton("Список КПД>0", callback_data="get_list_kpd"))
+               InlineKeyboardButton("Список КПД>0", callback_data="get_list_kpd"),
+               InlineKeyboardButton("Последние n КПД студента", callback_data="get_other_kpd"))
     return markup
 
 

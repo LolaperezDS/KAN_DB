@@ -4,6 +4,7 @@ import markups
 import sql_app.utils.crud as crud
 import sql_app.models.models as models
 from sql_app.database.database import SessionLocal, engine
+import functions
 
 from dotenv import load_dotenv
 import os
@@ -15,12 +16,14 @@ IS_PRODUCTION_MODE = bool(int(os.environ.get("IS_PRODUCTION_MODE")))
 token = os.environ.get("TELEGRAM_BOT_TOKEN")
 bot = telebot.TeleBot(token)
 
+session_set = set()
 
 sessions_feedback: dict[str, models.FeedbackTable] = {}
 sessions_event: dict[str, models.EventLogTable] = {}
 session_through: dict[str, models.ThroughTable] = {}
 session_notify: dict[str, models.NotificationTable] = {}
 session_auth: dict[str, str] = {}
+session_get_kpd: dict[str, int] = {}
 
 session_messages_to_clean: dict[str, None]
 
@@ -31,7 +34,8 @@ def is_free(tg_id: str) -> bool:
        tg_id not in sessions_event and \
        tg_id not in session_through and \
        tg_id not in session_notify and \
-       tg_id not in session_auth:
+       tg_id not in session_auth and \
+       tg_id not in session_get_kpd:
         return True
     return False
 
@@ -58,16 +62,6 @@ def sort_file_signatures(photo: [str]) -> [str]:
 # region Main node
 @bot.message_handler(func=lambda message: True)
 def message_handler(message):
-    if message.text == "tf":
-
-        session = SessionLocal(bind=engine)
-        photos = session.query(models.ImageTable).all()
-        for i in photos:
-            bot.send_photo(message.chat.id, i.image_id)
-
-        session.close()
-        return
-
     session = SessionLocal(bind=engine)
     user = None
     if IS_PRODUCTION_MODE:
@@ -94,6 +88,9 @@ def message_handler(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    if call.from_user.id in session_set:
+        return
+    # OLD
     if not is_free(call.from_user.id):
         return
 
@@ -133,29 +130,79 @@ def callback_query(call):
     elif call.data == "return_a":
         bot.send_message(call.from_user.id, "Основное меню администратора:",
                          reply_markup=markups.gen_admin())
+    elif call.data == "get_other_kpd":
+        get_other_kpd(call.from_user.id)
 # endregion
 
 
 # region Chains
+# region Get other KPD
+def get_other_kpd(tg_id: int) -> None:
+    session_set.add(tg_id)
+    send = bot.send_message(tg_id, "Напишите номер зачетки студента:")
+    bot.register_next_step_handler(send, choose_kpd_from_other)
+
+
+def choose_kpd_from_other(message):
+    if not message.text.isdigit():
+        session_set.discard(message.from_user.id)
+        bot.send_message(message.from_user.id, "Некорректный ввод")
+        return
+    session = SessionLocal(bind=engine)
+    user_initiator = session.query(models.UserTable).filter(models.UserTable.tg_id == str(message.from_user.id)).first()
+    if not user_initiator or user_initiator.role.acsess_level < 2:
+        session.close()
+        session_set.discard(message.from_user.id)
+        return
+    user_target = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text)).first()
+    
+    if not user_target:
+        session.close()
+        session_set.discard(message.from_user.id)
+        bot.send_message(message.from_user.id, "Студент не найден")
+        return
+    events = session.query(models.EventLogTable).filter(models.EventLogTable.event_target_id == user_target.id).all()
+    answer = functions.event_converter_to_message(events=events)
+    session.close()
+    send = bot.send_message(message.from_user.id, "Напишите номер конкретного случая: \n" + answer)
+    bot.register_next_step_handler(send, get_info_about_concrete_kpd)
+    
+def get_info_about_concrete_kpd(message) -> None:
+    session = SessionLocal(bind=engine)
+    pictures = session.query(models.ImageTable).filter(models.ImageTable.event_id == int(message.text)).all()
+    event_data = session.query(models.EventLogTable).filter(models.EventLogTable.id == int(message.text)).first()
+    for picture in pictures:
+        bot.send_photo(message.from_user.id, photo=picture.image_id)
+    bot.send_message(message.from_user.id, str(event_data.created_at) + "\n" + event_data.message + "\nНачислено быллов КПД: " + str(event_data.kpd_diff))
+    session_set.discard(message.from_user.id)
+    session.close()
+
+# endregion
+
+
 # region Get Profile
 def get_other_profile(tg_id: int) -> None:
+    
+    session_set.add(tg_id)
     send = bot.send_message(tg_id, "Напишите номер блока:")
     bot.register_next_step_handler(send, print_other_profiles)
 
 
 def print_other_profiles(message):
     answer = ""
-    if not message.text[0:3:].isdigit() or not message.text[3].isalpha():
+    session_set.discard(message.from_user.id)
+    if len(message.text) < 4 or not message.text[0:3:].isdigit() or not message.text[3].isalpha():
         bot.send_message(message.from_user.id, "Некорректный ввод")
         return
     session = SessionLocal(bind=engine)
-    room = session.query(models.RoomTable).filter(models.RoomTable.number == message.text.strip())
+    room = session.query(models.RoomTable).filter(models.RoomTable.number == message.text.strip()).first()
     if not room:
         bot.send_message(message.from_user.id, "Некорректный ввод")
         session.close()
         return
-    users = session.query(models.UserTable).filter
-
+    users = session.query(models.UserTable).filter(models.UserTable.room_id == room.id).all()
+    for i in users:
+        answer += str(i.student_id) + "|" + i.name + " " + i.sname + "\n"
     session.close()
     bot.send_message(message.from_user.id, answer)
 # endregion
@@ -165,109 +212,86 @@ def print_other_profiles(message):
 def set_kpd_chain(tg_id: int) -> None:
     send = bot.send_message(tg_id, "Напишите номер студ билета:")
     bot.register_next_step_handler(send, set_kpd_fullname_getter)
+    session_set.add(tg_id)
 
 
 def set_kpd_fullname_getter(message) -> None:
     if not message.text.isdigit():
         send = bot.send_message(message.from_user.id, "Incorrect input")
+        session_set.discard(message.from_user.id)
         return
+    target_id = None
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
-        user = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text))
+        user = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text)).first()
         user_initiator = crud.get_user_by_tg_id(message.from_user.id, session)
         event_types = crud.get_all_event_types(session)
         session.close()
         if user:
-            sessions_event.update({str(message.from_user.id): models.EventLogTable(event_target_id=user.id,
-                                                                                   event_initiator_id=user_initiator.id)})
+            target_id = user.id
         else:
-            if str(message.from_user.id) in sessions_event:
-                sessions_event.pop(str(message.from_user.id))
             bot.send_message(message.from_user.id, "Студент не найден.")
+            session_set.discard(message.from_user.id)
             return
     else:
         user = models.UserTable(full_name="TEST TEST")
+        session_set.discard(message.from_user.id)
     
     answer: str = "Выберите тип причины:"
     for i in range(len(event_types)):
         answer += "\n[" + str(i) + "]" + event_types[i].name
     send = bot.send_message(message.from_user.id, answer)
-    bot.register_next_step_handler(send, set_kpd_type_getter, e_types=event_types)
+    bot.register_next_step_handler(send, set_kpd_type_getter, e_types=event_types, target_id=target_id)
 
 
-def set_kpd_type_getter(message, e_types: [models.EventTypeTable] = None) -> None:
-    event: models.EventLogTable = None
-    try:
-        event = sessions_event.get(str(message.from_user.id))
-        int(message.text)
-    except BaseException:
-        if str(message.from_user.id) in sessions_event:
-            sessions_event.pop(str(message.from_user.id))
+def set_kpd_type_getter(message, e_types: [models.EventTypeTable] = None, target_id: int = None) -> None:
+    if not e_types or not target_id or not message.text.isdigit() or int(message.text) >= len(e_types):
+        session_set.discard(message.from_user.id)
         return
-
-    if event:
-        event.event_type_id = e_types[int(message.text)].id
-        sessions_event.update({str(message.from_user.id): event})
-        send = bot.send_message(message.from_user.id, "Приложите фото")
-        bot.register_next_step_handler(send, set_kpd_images)
-    else:
-        return
+    event_type_id = e_types[int(message.text)].id
+    send = bot.send_message(message.from_user.id, "Приложите 1 фото")
+    bot.register_next_step_handler(send, set_kpd_images, target_id=target_id, e_type=event_type_id)
 
 
-def set_kpd_images(message) -> None:
+def set_kpd_images(message, target_id: int = None, e_type: int = None) -> None:
     if not message.photo:
-        send = bot.send_message(message.from_user.id, "Приложите фото")
-        bot.register_next_step_handler(send, set_kpd_images)
-        if str(message.from_user.id) in sessions_event:
-            sessions_event.pop(str(message.from_user.id))
+        send = bot.send_message(message.from_user.id, "Приложите именно фото. Возврат...")
+        session_set.discard(message.from_user.id)
         return
-    
-    photo_ids = sort_file_signatures([photo.file_id for photo in message.photo])
-
+    photo_ids = [message.photo[-1]]
     send = bot.send_message(message.from_user.id, "Напишите развёрнуто причину")
-    bot.register_next_step_handler(send, set_kpd_message_getter, photo_ids=photo_ids)
+    bot.register_next_step_handler(send, set_kpd_message_getter, photo_ids=photo_ids, target_id=target_id, e_type=e_type)
 
 
-def set_kpd_message_getter(message, photo_ids: [str]) -> None:
-    event: models.EventLogTable = None
-    try:
-        event = sessions_event.get(str(message.from_user.id))
-    except BaseException:
-        if str(message.from_user.id) in sessions_event:
-            sessions_event.pop(str(message.from_user.id))
+def set_kpd_message_getter(message, photo_ids: [str], target_id: int = None, e_type: int = None) -> None:
+    if not photo_ids:
+        session_set.discard(message.from_user.id)
         return
+    send = bot.send_message(message.from_user.id, "Напишите количество баллов")
+    bot.register_next_step_handler(send, set_kpd_deff_score_getter, photo_ids=photo_ids, target_id=target_id, e_type=e_type, e_message=message.text)
+
+
+def set_kpd_deff_score_getter(message, photo_ids: [str], target_id: int = None, e_type: int = None, e_message: str = None) -> None:
     
-    if event:
-        event.message = message.text
-        sessions_event.update({str(message.from_user.id): event})
-        send = bot.send_message(message.from_user.id, "Напишите количество баллов")
-        bot.register_next_step_handler(send, set_kpd_deff_score_getter, photo_ids=photo_ids)
-    else:
-        return
-
-
-def set_kpd_deff_score_getter(message, photo_ids: [str]) -> None:
-    event: models.EventLogTable = None
-    try:
-        event = sessions_event.get(str(message.from_user.id))
-    except BaseException:
-        if str(message.from_user.id) in sessions_event:
-            sessions_event.pop(str(message.from_user.id))
-        return
+    session = SessionLocal(bind=engine)
+    in_user = session.query(models.UserTable).filter(models.UserTable.tg_id == str(message.from_user.id)).first()
+    subj_user = session.query(models.UserTable).filter(models.UserTable.id == target_id).first()
+    subj_user.kpd_score += int(message.text)
+    event = models.EventLogTable(message=e_message,
+                                 kpd_diff=int(message.text),
+                                 event_target_id=target_id,
+                                 event_initiator_id=in_user.id,
+                                 event_type_id=e_type)
     
-    if event:
-        session = SessionLocal(bind=engine)
-        subj_user = session.query(models.UserTable).filter(models.UserTable.id == event.event_target_id).first()
-        subj_user.kpd_score += int(message.text)
-        event.kpd_diff = int(message.text)
-        session.add(event)
-        session.commit()
-        for id in photo_ids:
-            session.add(models.ImageTable(image_id=id,
-                                          event_id=event.id))
-        session.close()
-        sessions_event.pop(str(message.from_user.id))
+    session.add(event)
+    session.commit()
+    for id in photo_ids:
+        session.add(models.ImageTable(image_id=id,
+                                        event_id=event.id))
+    session.commit()
+    session.close()
     bot.send_message(message.from_user.id, "Готово!")
+    session_set.discard(message.from_user.id)
 
 # endregion
 
