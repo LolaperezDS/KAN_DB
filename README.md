@@ -18,9 +18,10 @@
 - [X] LIST NOTIFICATION OUTPUT METHOD
 - [X] cancel ALL NOTIFICATIONS OUTPUT METHOD
 
-- [X] Out last [x] kpd by user id [n] with pictures
-- [X] print_other_profiles / Add find people chain
-- [X] Kpd fixed chain and picture
+- [ ] Out last [x] kpd by user id [n] with pictures
+- [ ] Add find people chain
+
+- [ ] print_other_profiles
 
 
 By ObjegaStuff
