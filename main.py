@@ -18,46 +18,6 @@ bot = telebot.TeleBot(token)
 
 session_set = set()
 
-sessions_feedback: dict[str, models.FeedbackTable] = {}
-sessions_event: dict[str, models.EventLogTable] = {}
-session_through: dict[str, models.ThroughTable] = {}
-session_notify: dict[str, models.NotificationTable] = {}
-session_auth: dict[str, str] = {}
-session_get_kpd: dict[str, int] = {}
-
-session_messages_to_clean: dict[str, None]
-
-# region Functions
-# O(1) avg
-def is_free(tg_id: str) -> bool:
-    if tg_id not in session_notify and \
-       tg_id not in sessions_event and \
-       tg_id not in session_through and \
-       tg_id not in session_notify and \
-       tg_id not in session_auth and \
-       tg_id not in session_get_kpd:
-        return True
-    return False
-
-def del_hist(message, count=5):
-    chat_id = message.chat.id
-    message_id = message.message_id
-    for i in range(message_id, message_id - count, -1):
-        try:
-            bot.delete_message(chat_id, i)
-        except BaseException:
-            pass
-
-# O(n) avg
-def sort_file_signatures(photo: [str]) -> [str]:
-    set_of_signatures = set()
-    ans_list = []
-    for i in photo:
-        if i.split("-")[0] not in set_of_signatures:
-            set_of_signatures.add(i.split("-")[0])
-            ans_list.append(i)
-    return ans_list
-# endregion
 
 # region Main node
 @bot.message_handler(func=lambda message: True)
@@ -89,9 +49,6 @@ def message_handler(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     if call.from_user.id in session_set:
-        return
-    # OLD
-    if not is_free(call.from_user.id):
         return
 
     if call.data == "profile":
@@ -202,7 +159,7 @@ def print_other_profiles(message):
         return
     users = session.query(models.UserTable).filter(models.UserTable.room_id == room.id).all()
     for i in users:
-        answer += str(i.student_id) + "|" + i.name + " " + i.sname + "\n"
+        answer += str(i.student_id) + " | " + i.name + " " + i.sname + "\n"
     session.close()
     bot.send_message(message.from_user.id, answer)
 # endregion
@@ -300,47 +257,38 @@ def set_kpd_deff_score_getter(message, photo_ids: [str], target_id: int = None, 
 def feedback_info(tg_id: int) -> None:
     send = bot.send_message(tg_id, "Напишите отзыв о работе сотрудника(ов) общежития:")
     bot.register_next_step_handler(send, feedback_body_handler)
+    session_set.add(tg_id)
 
 
 def feedback_body_handler(message) -> None:
-    if IS_PRODUCTION_MODE:
-        sessions_feedback.update({str(message.from_user.id): models.FeedbackTable(message=message.text)})
-    else:
-        print("Feedback from: " + str(message.from_user.id) + " = " + message.text)
     send = bot.send_message(message.from_user.id,
                             "Оцените опыт взаимодействия:\n1 - плохо\n2 - нормально\n3 - хорошо")
-    bot.register_next_step_handler(send, feedback_score_handler)
+    bot.register_next_step_handler(send, feedback_score_handler, fb_message=message.text)
 
 
-def feedback_score_handler(message) -> None:
-    score_of_feedback = 2
+def feedback_score_handler(message, fb_message: str = None) -> None:
+    score_of_feedback = -1
     if message.text in ["1", "2", "3"]:
         score_of_feedback = int(message.text)
 
-    if IS_PRODUCTION_MODE:
-        session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(message.from_user.id, session)
+    session = SessionLocal(bind=engine)
+    user = crud.get_user_by_tg_id(message.from_user.id, session)
 
-        if not user:
-            print("user not found")
-            session.close()
-            if str(message.from_user.id) in sessions_feedback:
-                sessions_feedback.pop(str(message.from_user.id))
-            return
-        try:
-            new_feedback = sessions_feedback.get(str(message.from_user.id))
-            if new_feedback:
-                new_feedback.initiator_id = user.id
-                new_feedback.feedback_score = score_of_feedback
-                session.add(new_feedback)
-                session.commit()
-                sessions_feedback.pop(str(message.from_user.id))
-        except Exception as e:
-            session.rollback()
-            raise e
+    if not user:
         session.close()
-    else:
-        print("Фидбек как будто бы создан")
+        session_set.discard(message.from_user.id)
+        return
+    try:
+        new_feedback = models.FeedbackTable(message=fb_message,
+                                            feedback_score=score_of_feedback,
+                                            initiator_id=user.id)
+        session.add(new_feedback)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    session_set.discard(message.from_user.id)
+    session.close()
 
     bot.send_message(message.from_user.id, "Спасибо за отзыв!")
 
@@ -354,52 +302,45 @@ def old_password_checker(tg_id: int):
 
 
 def change_password_handler(message):
-    if IS_PRODUCTION_MODE:
-        session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(message.from_user.id, session)
-        session.close()
+    session = SessionLocal(bind=engine)
+    user = crud.get_user_by_tg_id(message.from_user.id, session)
 
-        old_pwd = message.text
+    old_pwd = message.text
 
-        if not old_pwd.isalnum():
-            bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
-            return
+    if not old_pwd.isalnum():
+        bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
+        return
 
-        if old_pwd == user.password:
-            bot.delete_message(message.chat.id, message.id)
-            send = bot.send_message(message.from_user.id,
-                                    "Введите новый пароль (он должен содержать только английские буквы и цифры):")
-            bot.register_next_step_handler(send, change_password_final)
-        else:
-            bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
+    if old_pwd == user.password:
+        bot.delete_message(message.chat.id, message.id)
+        send = bot.send_message(message.from_user.id,
+                                "Введите новый пароль (он должен содержать только английские буквы и цифры):")
+        bot.register_next_step_handler(send, change_password_final)
     else:
-        print("Как будто пользователь ввёл правильный старый пароль: " + message.text)
+        bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
+    session.close()
 
 
 def change_password_final(message):
-    if not IS_PRODUCTION_MODE:
-        print("Как будто пользователь ввёл новый пароль: " + message.text)
-
     if not message.text.isalnum():
         bot.send_message(message.from_user.id,
                          "Пароль должен содержать только английские буквы и цифры.")
         return
 
-    if IS_PRODUCTION_MODE:
-        new_pwd = message.text
-        session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(message.from_user.id, session)
-        try:
-            crud.change_password(new_pwd, user, session)
-            bot.delete_message(message.chat.id, message.id)
-            bot.send_message(message.from_user.id,
-                            "Пароль успешно изменён.")
-        except BaseException:
-            bot.delete_message(message.chat.id, message.id)
-            bot.send_message(message.from_user.id,
-                                "Возникли проблемы смены пароля.")
-        finally:
-            session.close()
+    new_pwd = message.text
+    session = SessionLocal(bind=engine)
+    user = crud.get_user_by_tg_id(message.from_user.id, session)
+    try:
+        crud.change_password(new_pwd, user, session)
+        bot.delete_message(message.chat.id, message.id)
+        bot.send_message(message.from_user.id,
+                        "Пароль успешно изменён.")
+    except BaseException:
+        bot.delete_message(message.chat.id, message.id)
+        bot.send_message(message.from_user.id,
+                            "Возникли проблемы смены пароля.")
+    finally:
+        session.close()
 
 # endregion
 
@@ -411,28 +352,23 @@ def auth_query(message):
 
 
 def auth_pwd(message):
-    session_auth.update({str(message.from_user.id): message.text})
     send = bot.send_message(message.chat.id, 'Введите пароль:')
-    bot.register_next_step_handler(send, auth_handler)
+    bot.register_next_step_handler(send, auth_handler, login=message.text)
 
-def auth_handler(message):
-    if IS_PRODUCTION_MODE:
-        try:
-            session = SessionLocal(bind=engine)
-            crud.authenticate(message.from_user.id, session_auth[str(message.from_user.id)], message.text, session)
-            session.close()
-        except BaseException:
-            bot.send_message(message.chat.id, 'Неправильный пароль. Попробуйте ещё раз или обратитесь к администрации.')
-            auth_query(message)
-            return
-        finally:
-            if str(message.from_user.id) in session_auth:
-                session_auth.pop(str(message.from_user.id))
-        bot.send_message(message.chat.id, 'Вы успешно аутентифицировались')
-        bot.delete_message(message.chat.id, message.id)
-        message_handler(message=message)
-    else:
-        print("Как будто пользователь попытался аутентифицироваться: " + message.text)
+def auth_handler(message, login=None):
+    try:
+        session = SessionLocal(bind=engine)
+        crud.authenticate(message.from_user.id, login, message.text, session)
+        session.close()
+    except BaseException:
+        bot.send_message(message.chat.id, 'Неправильный пароль. Попробуйте ещё раз или обратитесь к администрации.')
+        auth_query(message)
+        return
+    finally:
+        session_set.discard(message.from_user.id)
+    bot.send_message(message.chat.id, 'Вы успешно аутентифицировались')
+    bot.delete_message(message.chat.id, message.id)
+    message_handler(message=message)
 # endregion
 # endregion
 

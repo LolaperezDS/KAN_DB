@@ -22,6 +22,10 @@
 - [X] Add find people chain
 
 - [X] print_other_profiles
+- [X] feedback chain remove bad code and session_set added
+- [X] change password chain cleared
+- [X] Auth chain clear
+- [X] all Sessions removed
 
 
 By ObjegaStuff
