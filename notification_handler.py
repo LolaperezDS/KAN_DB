@@ -6,6 +6,13 @@ import sql_app.models.models as models
 
 from sql_app.database.database import SessionLocal, engine
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+IS_PRODUCTION_MODE = bool(int(os.environ.get("IS_PRODUCTION_MODE")))
+
 # in secs, between checks
 FREEZE_TIME = 10
 
@@ -28,7 +35,7 @@ def message_to_notificate_constructor(notification: models.NotificationTable) ->
 
 
 if __name__ == "__main__":
-    token = "6012918807:AAGmDv1adk0ic1RtlUuDgCbdCnS0QoYP9Dc"
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
     bot = telebot.TeleBot(token)
 
     session = SessionLocal(bind=engine)
@@ -37,12 +44,11 @@ if __name__ == "__main__":
     while True:
         session = SessionLocal(bind=engine)
         notifications = crud.get_all_not_notified(session)
-        session.close()
         # проверить все напоминания
         for notification in notifications:
             if notification.event_date - timedelta(hours=notification.remind_hours) >= datetime.utcnow():
                 notificate_all_users(tg_users_to_notificate, message_to_notificate_constructor(notification), bot)
                 crud.cancel_notification_by_id(notification.id, session)
                 continue
-
+        session.close()
         time.sleep(FREEZE_TIME)

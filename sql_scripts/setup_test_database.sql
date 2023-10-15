@@ -97,3 +97,5 @@ INSERT INTO UserTable (student_id, is_active, tg_id, login, password, name, snam
 VALUES (12345677, true, NULL, 'ShadowFiend', 'zxc', 'Yarik', 'Karov', 0, 2, 1);
 INSERT INTO UserTable (student_id, is_active, tg_id, login, password, name, sname, kpd_score, role_id, room_id)
 VALUES (12345676, true, NULL, 'LoginTest', 'asd', 'Ivan', 'Ivanich', 15, 3, 2);
+INSERT INTO UserTable (student_id, is_active, tg_id, login, password, name, sname, kpd_score, role_id, room_id)
+VALUES (12345666, true, NULL, 'Hairulla', 'SnusLover', 'Niyzzzz', 'xXx_Hairullove_xXx', 0, 1, 1);

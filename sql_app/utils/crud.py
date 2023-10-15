@@ -131,6 +131,7 @@ def get_event_by_event_target_id(user: UserTable, count: int, session):
         if count < 1 or count > 50:
             return
         events = session.query(EventLogTable).filter(EventLogTable.event_target_id == user.id).limit(count)
+        return events
     except Exception as e:
         session.rollback()
         raise e

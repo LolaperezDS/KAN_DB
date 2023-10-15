@@ -96,7 +96,7 @@ def callback_query(call):
 # region Get other KPD
 def get_other_kpd(tg_id: int) -> None:
     session_set.add(tg_id)
-    send = bot.send_message(tg_id, "Напишите номер зачетки студента:")
+    send = bot.send_message(tg_id, "Напишите номер студ билета:")
     bot.register_next_step_handler(send, choose_kpd_from_other)
 
 
@@ -215,20 +215,20 @@ def set_kpd_images(message, target_id: int = None, e_type: int = None) -> None:
         send = bot.send_message(message.from_user.id, "Приложите именно фото. Возврат...")
         session_set.discard(message.from_user.id)
         return
-    photo_ids = [message.photo[-1]]
+    photo_id = message.photo[-1].file_id
     send = bot.send_message(message.from_user.id, "Напишите развёрнуто причину")
-    bot.register_next_step_handler(send, set_kpd_message_getter, photo_ids=photo_ids, target_id=target_id, e_type=e_type)
+    bot.register_next_step_handler(send, set_kpd_message_getter, photo_id=photo_id, target_id=target_id, e_type=e_type)
 
 
-def set_kpd_message_getter(message, photo_ids: [str], target_id: int = None, e_type: int = None) -> None:
-    if not photo_ids:
+def set_kpd_message_getter(message, photo_id: str, target_id: int = None, e_type: int = None) -> None:
+    if not photo_id:
         session_set.discard(message.from_user.id)
         return
     send = bot.send_message(message.from_user.id, "Напишите количество баллов")
-    bot.register_next_step_handler(send, set_kpd_deff_score_getter, photo_ids=photo_ids, target_id=target_id, e_type=e_type, e_message=message.text)
+    bot.register_next_step_handler(send, set_kpd_deff_score_getter, photo_id=photo_id, target_id=target_id, e_type=e_type, e_message=message.text)
 
 
-def set_kpd_deff_score_getter(message, photo_ids: [str], target_id: int = None, e_type: int = None, e_message: str = None) -> None:
+def set_kpd_deff_score_getter(message, photo_id: str, target_id: int = None, e_type: int = None, e_message: str = None) -> None:
     
     session = SessionLocal(bind=engine)
     in_user = session.query(models.UserTable).filter(models.UserTable.tg_id == str(message.from_user.id)).first()
@@ -242,9 +242,8 @@ def set_kpd_deff_score_getter(message, photo_ids: [str], target_id: int = None, 
     
     session.add(event)
     session.commit()
-    for id in photo_ids:
-        session.add(models.ImageTable(image_id=id,
-                                        event_id=event.id))
+    session.add(models.ImageTable(image_id=photo_id,
+                                  event_id=event.id))
     session.commit()
     session.close()
     bot.send_message(message.from_user.id, "Готово!")
@@ -386,12 +385,10 @@ def kpd_handler(tg_id: int) -> None:
     if not user:
         session.close()
         return
-    
     events = crud.get_event_by_event_target_id(user, 5, session)
-    session.close()
-
     ans = "\n".join(["Дата: " + str(i.created_at) + "\nПричина: " + str(i.message) + "\nКол-во баллов: " +
                      str(i.kpd_diff) + "\n----------" for i in events]) if events else "У вас нет КПД"
+    session.close()
     bot.send_message(tg_id, "История КПД\n----------\n" + ans)
 
 
