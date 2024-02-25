@@ -4,6 +4,7 @@ import markups
 import sql_app.utils.crud as crud
 import sql_app.models.models as models
 from sql_app.database.database import SessionLocal, engine
+import functions
 
 from dotenv import load_dotenv
 import os
@@ -15,59 +16,12 @@ IS_PRODUCTION_MODE = bool(int(os.environ.get("IS_PRODUCTION_MODE")))
 token = os.environ.get("TELEGRAM_BOT_TOKEN")
 bot = telebot.TeleBot(token)
 
+session_set = set()
 
-sessions_feedback: dict[str, models.FeedbackTable] = {}
-sessions_event: dict[str, models.EventLogTable] = {}
-session_through: dict[str, models.ThroughTable] = {}
-session_notify: dict[str, models.NotificationTable] = {}
-session_auth: dict[str, str] = {}
-
-session_messages_to_clean: dict[str, None]
-
-# region Functions
-# O(1) avg
-def is_free(tg_id: str) -> bool:
-    if tg_id not in session_notify and \
-       tg_id not in sessions_event and \
-       tg_id not in session_through and \
-       tg_id not in session_notify and \
-       tg_id not in session_auth:
-        return True
-    return False
-
-def del_hist(message, count=5):
-    chat_id = message.chat.id
-    message_id = message.message_id
-    for i in range(message_id, message_id - count, -1):
-        try:
-            bot.delete_message(chat_id, i)
-        except BaseException:
-            pass
-
-# O(n) avg
-def sort_file_signatures(photo: [str]) -> [str]:
-    set_of_signatures = set()
-    ans_list = []
-    for i in photo:
-        if i.split("-")[0] not in set_of_signatures:
-            set_of_signatures.add(i.split("-")[0])
-            ans_list.append(i)
-    return ans_list
-# endregion
 
 # region Main node
 @bot.message_handler(func=lambda message: True)
 def message_handler(message):
-    if message.text == "tf":
-
-        session = SessionLocal(bind=engine)
-        photos = session.query(models.ImageTable).all()
-        for i in photos:
-            bot.send_photo(message.chat.id, i.image_id)
-
-        session.close()
-        return
-
     session = SessionLocal(bind=engine)
     user = None
     if IS_PRODUCTION_MODE:
@@ -94,7 +48,7 @@ def message_handler(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-    if not is_free(call.from_user.id):
+    if call.from_user.id in session_set:
         return
 
     if call.data == "profile":
@@ -133,29 +87,85 @@ def callback_query(call):
     elif call.data == "return_a":
         bot.send_message(call.from_user.id, "Основное меню администратора:",
                          reply_markup=markups.gen_admin())
+    elif call.data == "get_other_kpd":
+        get_other_kpd(call.from_user.id)
 # endregion
 
 
 # region Chains
+# region Get other KPD
+def get_other_kpd(tg_id: int) -> None:
+    session_set.add(tg_id)
+    send = bot.send_message(tg_id, "Напишите номер студ билета:")
+    bot.register_next_step_handler(send, choose_kpd_from_other)
+
+
+def choose_kpd_from_other(message):
+    if not message.text.isdigit():
+        session_set.discard(message.from_user.id)
+        bot.send_message(message.from_user.id, "Некорректный ввод")
+        return
+    session = SessionLocal(bind=engine)
+    user_initiator = session.query(models.UserTable).filter(models.UserTable.tg_id == str(message.from_user.id)).first()
+    if not user_initiator or user_initiator.role.acsess_level < 2:
+        session.close()
+        session_set.discard(message.from_user.id)
+        return
+    user_target = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text)).first()
+    
+    if not user_target:
+        session.close()
+        session_set.discard(message.from_user.id)
+        bot.send_message(message.from_user.id, "Студент не найден")
+        return
+    
+    events = session.query(models.EventLogTable).filter(models.EventLogTable.event_target_id == user_target.id).all()
+    session.close()
+    if not events:
+        session_set.discard(message.from_user.id)
+        bot.send_message(message.from_user.id, "Кпд за последнее время не было")
+        return
+    
+    answer = functions.event_converter_to_message(events=events)
+    send = bot.send_message(message.from_user.id, "Напишите номер конкретного случая: \n" + answer)
+    bot.register_next_step_handler(send, get_info_about_concrete_kpd)
+    
+def get_info_about_concrete_kpd(message) -> None:
+    session = SessionLocal(bind=engine)
+    pictures = session.query(models.ImageTable).filter(models.ImageTable.event_id == int(message.text)).all()
+    event_data = session.query(models.EventLogTable).filter(models.EventLogTable.id == int(message.text)).first()
+    for picture in pictures:
+        bot.send_photo(message.from_user.id, photo=picture.image_id)
+    bot.send_message(message.from_user.id, str(event_data.created_at) + "\n" + event_data.message + "\nНачислено быллов КПД: " + str(event_data.kpd_diff))
+    session_set.discard(message.from_user.id)
+    session.close()
+
+# endregion
+
+
 # region Get Profile
 def get_other_profile(tg_id: int) -> None:
+    
+    session_set.add(tg_id)
     send = bot.send_message(tg_id, "Напишите номер блока:")
     bot.register_next_step_handler(send, print_other_profiles)
 
 
 def print_other_profiles(message):
     answer = ""
-    if not message.text[0:3:].isdigit() or not message.text[3].isalpha():
+    session_set.discard(message.from_user.id)
+    if len(message.text) < 4 or not message.text[0:3:].isdigit() or not message.text[3].isalpha():
         bot.send_message(message.from_user.id, "Некорректный ввод")
         return
     session = SessionLocal(bind=engine)
-    room = session.query(models.RoomTable).filter(models.RoomTable.number == message.text.strip())
+    room = session.query(models.RoomTable).filter(models.RoomTable.number == message.text.strip()).first()
     if not room:
         bot.send_message(message.from_user.id, "Некорректный ввод")
         session.close()
         return
-    users = session.query(models.UserTable).filter
-
+    users = session.query(models.UserTable).filter(models.UserTable.room_id == room.id).all()
+    for i in users:
+        answer += str(i.student_id) + " | " + i.name + " " + i.sname + "\n"
     session.close()
     bot.send_message(message.from_user.id, answer)
 # endregion
@@ -165,109 +175,84 @@ def print_other_profiles(message):
 def set_kpd_chain(tg_id: int) -> None:
     send = bot.send_message(tg_id, "Напишите номер студ билета:")
     bot.register_next_step_handler(send, set_kpd_fullname_getter)
+    session_set.add(tg_id)
 
 
 def set_kpd_fullname_getter(message) -> None:
     if not message.text.isdigit():
         send = bot.send_message(message.from_user.id, "Incorrect input")
+        session_set.discard(message.from_user.id)
         return
+    target_id = None
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
-        user = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text))
-        user_initiator = crud.get_user_by_tg_id(message.from_user.id, session)
+        user = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text)).first()
         event_types = crud.get_all_event_types(session)
         session.close()
         if user:
-            sessions_event.update({str(message.from_user.id): models.EventLogTable(event_target_id=user.id,
-                                                                                   event_initiator_id=user_initiator.id)})
+            target_id = user.id
         else:
-            if str(message.from_user.id) in sessions_event:
-                sessions_event.pop(str(message.from_user.id))
             bot.send_message(message.from_user.id, "Студент не найден.")
+            session_set.discard(message.from_user.id)
             return
     else:
         user = models.UserTable(full_name="TEST TEST")
+        session_set.discard(message.from_user.id)
     
     answer: str = "Выберите тип причины:"
     for i in range(len(event_types)):
         answer += "\n[" + str(i) + "]" + event_types[i].name
     send = bot.send_message(message.from_user.id, answer)
-    bot.register_next_step_handler(send, set_kpd_type_getter, e_types=event_types)
+    bot.register_next_step_handler(send, set_kpd_type_getter, e_types=event_types, target_id=target_id)
 
 
-def set_kpd_type_getter(message, e_types: [models.EventTypeTable] = None) -> None:
-    event: models.EventLogTable = None
-    try:
-        event = sessions_event.get(str(message.from_user.id))
-        int(message.text)
-    except BaseException:
-        if str(message.from_user.id) in sessions_event:
-            sessions_event.pop(str(message.from_user.id))
+def set_kpd_type_getter(message, e_types: list[models.EventTypeTable] = None, target_id: int = None) -> None:
+    if not e_types or not target_id or not message.text.isdigit() or int(message.text) >= len(e_types):
+        session_set.discard(message.from_user.id)
         return
-
-    if event:
-        event.event_type_id = e_types[int(message.text)].id
-        sessions_event.update({str(message.from_user.id): event})
-        send = bot.send_message(message.from_user.id, "Приложите фото")
-        bot.register_next_step_handler(send, set_kpd_images)
-    else:
-        return
+    event_type_id = e_types[int(message.text)].id
+    send = bot.send_message(message.from_user.id, "Приложите 1 фото")
+    bot.register_next_step_handler(send, set_kpd_images, target_id=target_id, e_type=event_type_id)
 
 
-def set_kpd_images(message) -> None:
+def set_kpd_images(message, target_id: int = None, e_type: int = None) -> None:
     if not message.photo:
-        send = bot.send_message(message.from_user.id, "Приложите фото")
-        bot.register_next_step_handler(send, set_kpd_images)
-        if str(message.from_user.id) in sessions_event:
-            sessions_event.pop(str(message.from_user.id))
+        send = bot.send_message(message.from_user.id, "Приложите именно фото. Возврат...")
+        session_set.discard(message.from_user.id)
         return
-    
-    photo_ids = sort_file_signatures([photo.file_id for photo in message.photo])
-
+    photo_id = message.photo[-1].file_id
     send = bot.send_message(message.from_user.id, "Напишите развёрнуто причину")
-    bot.register_next_step_handler(send, set_kpd_message_getter, photo_ids=photo_ids)
+    bot.register_next_step_handler(send, set_kpd_message_getter, photo_id=photo_id, target_id=target_id, e_type=e_type)
 
 
-def set_kpd_message_getter(message, photo_ids: [str]) -> None:
-    event: models.EventLogTable = None
-    try:
-        event = sessions_event.get(str(message.from_user.id))
-    except BaseException:
-        if str(message.from_user.id) in sessions_event:
-            sessions_event.pop(str(message.from_user.id))
+def set_kpd_message_getter(message, photo_id: str, target_id: int = None, e_type: int = None) -> None:
+    if not photo_id:
+        session_set.discard(message.from_user.id)
         return
+    send = bot.send_message(message.from_user.id, "Напишите количество баллов")
+    bot.register_next_step_handler(send, set_kpd_deff_score_getter, photo_id=photo_id, target_id=target_id, e_type=e_type, e_message=message.text)
+
+
+def set_kpd_deff_score_getter(message, photo_id: str, target_id: int = None, e_type: int = None, e_message: str = None) -> None:
     
-    if event:
-        event.message = message.text
-        sessions_event.update({str(message.from_user.id): event})
-        send = bot.send_message(message.from_user.id, "Напишите количество баллов")
-        bot.register_next_step_handler(send, set_kpd_deff_score_getter, photo_ids=photo_ids)
-    else:
-        return
-
-
-def set_kpd_deff_score_getter(message, photo_ids: [str]) -> None:
-    event: models.EventLogTable = None
-    try:
-        event = sessions_event.get(str(message.from_user.id))
-    except BaseException:
-        if str(message.from_user.id) in sessions_event:
-            sessions_event.pop(str(message.from_user.id))
-        return
+    session = SessionLocal(bind=engine)
+    in_user = session.query(models.UserTable).filter(models.UserTable.tg_id == str(message.from_user.id)).first()
+    subj_user = session.query(models.UserTable).filter(models.UserTable.id == target_id).first()
+    subj_user.kpd_score += int(message.text)
+    event = models.EventLogTable(message=e_message,
+                                 kpd_diff=int(message.text),
+                                 event_target_id=target_id,
+                                 event_initiator_id=in_user.id,
+                                 event_type_id=e_type)
     
-    if event:
-        session = SessionLocal(bind=engine)
-        subj_user = session.query(models.UserTable).filter(models.UserTable.id == event.event_target_id).first()
-        subj_user.kpd_score += int(message.text)
-        event.kpd_diff = int(message.text)
-        session.add(event)
-        session.commit()
-        for id in photo_ids:
-            session.add(models.ImageTable(image_id=id,
-                                          event_id=event.id))
-        session.close()
-        sessions_event.pop(str(message.from_user.id))
+    session.add(event)
+    session.commit()
+    session.add(models.ImageTable(image_id=photo_id,
+                                  event_id=event.id))
+    session.commit()
+    session.close()
     bot.send_message(message.from_user.id, "Готово!")
+    session_set.discard(message.from_user.id)
 
 # endregion
 
@@ -276,47 +261,38 @@ def set_kpd_deff_score_getter(message, photo_ids: [str]) -> None:
 def feedback_info(tg_id: int) -> None:
     send = bot.send_message(tg_id, "Напишите отзыв о работе сотрудника(ов) общежития:")
     bot.register_next_step_handler(send, feedback_body_handler)
+    session_set.add(tg_id)
 
 
 def feedback_body_handler(message) -> None:
-    if IS_PRODUCTION_MODE:
-        sessions_feedback.update({str(message.from_user.id): models.FeedbackTable(message=message.text)})
-    else:
-        print("Feedback from: " + str(message.from_user.id) + " = " + message.text)
     send = bot.send_message(message.from_user.id,
                             "Оцените опыт взаимодействия:\n1 - плохо\n2 - нормально\n3 - хорошо")
-    bot.register_next_step_handler(send, feedback_score_handler)
+    bot.register_next_step_handler(send, feedback_score_handler, fb_message=message.text)
 
 
-def feedback_score_handler(message) -> None:
-    score_of_feedback = 2
+def feedback_score_handler(message, fb_message: str = None) -> None:
+    score_of_feedback = -1
     if message.text in ["1", "2", "3"]:
         score_of_feedback = int(message.text)
 
-    if IS_PRODUCTION_MODE:
-        session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(message.from_user.id, session)
+    session = SessionLocal(bind=engine)
+    user = crud.get_user_by_tg_id(message.from_user.id, session)
 
-        if not user:
-            print("user not found")
-            session.close()
-            if str(message.from_user.id) in sessions_feedback:
-                sessions_feedback.pop(str(message.from_user.id))
-            return
-        try:
-            new_feedback = sessions_feedback.get(str(message.from_user.id))
-            if new_feedback:
-                new_feedback.initiator_id = user.id
-                new_feedback.feedback_score = score_of_feedback
-                session.add(new_feedback)
-                session.commit()
-                sessions_feedback.pop(str(message.from_user.id))
-        except Exception as e:
-            session.rollback()
-            raise e
+    if not user:
         session.close()
-    else:
-        print("Фидбек как будто бы создан")
+        session_set.discard(message.from_user.id)
+        return
+    try:
+        new_feedback = models.FeedbackTable(message=fb_message,
+                                            feedback_score=score_of_feedback,
+                                            initiator_id=user.id)
+        session.add(new_feedback)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    session_set.discard(message.from_user.id)
+    session.close()
 
     bot.send_message(message.from_user.id, "Спасибо за отзыв!")
 
@@ -330,52 +306,42 @@ def old_password_checker(tg_id: int):
 
 
 def change_password_handler(message):
-    if IS_PRODUCTION_MODE:
-        session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(message.from_user.id, session)
-        session.close()
+    session = SessionLocal(bind=engine)
+    user = crud.get_user_by_tg_id(message.from_user.id, session)
 
-        old_pwd = message.text
+    old_pwd = message.text
 
-        if not old_pwd.isalnum():
-            bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
-            return
+    if not old_pwd.isalnum() or old_pwd != user.password:
+        bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
+        return
 
-        if old_pwd == user.password:
-            bot.delete_message(message.chat.id, message.id)
-            send = bot.send_message(message.from_user.id,
-                                    "Введите новый пароль (он должен содержать только английские буквы и цифры):")
-            bot.register_next_step_handler(send, change_password_final)
-        else:
-            bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
-    else:
-        print("Как будто пользователь ввёл правильный старый пароль: " + message.text)
+    bot.delete_message(message.chat.id, message.id)
+    send = bot.send_message(message.from_user.id,
+                            "Введите новый пароль (он должен содержать только английские буквы и цифры):")
+    bot.register_next_step_handler(send, change_password_final)
+    session.close()
 
 
 def change_password_final(message):
-    if not IS_PRODUCTION_MODE:
-        print("Как будто пользователь ввёл новый пароль: " + message.text)
-
     if not message.text.isalnum():
         bot.send_message(message.from_user.id,
                          "Пароль должен содержать только английские буквы и цифры.")
         return
 
-    if IS_PRODUCTION_MODE:
-        new_pwd = message.text
-        session = SessionLocal(bind=engine)
-        user = crud.get_user_by_tg_id(message.from_user.id, session)
-        try:
-            crud.change_password(new_pwd, user, session)
-            bot.delete_message(message.chat.id, message.id)
-            bot.send_message(message.from_user.id,
-                            "Пароль успешно изменён.")
-        except BaseException:
-            bot.delete_message(message.chat.id, message.id)
-            bot.send_message(message.from_user.id,
-                                "Возникли проблемы смены пароля.")
-        finally:
-            session.close()
+    new_pwd = message.text
+    session = SessionLocal(bind=engine)
+    user = crud.get_user_by_tg_id(message.from_user.id, session)
+    try:
+        crud.change_password(new_pwd, user, session)
+        bot.delete_message(message.chat.id, message.id)
+        bot.send_message(message.from_user.id,
+                        "Пароль успешно изменён.")
+    except BaseException:
+        bot.delete_message(message.chat.id, message.id)
+        bot.send_message(message.from_user.id,
+                            "Возникли проблемы смены пароля.")
+    finally:
+        session.close()
 
 # endregion
 
@@ -387,28 +353,23 @@ def auth_query(message):
 
 
 def auth_pwd(message):
-    session_auth.update({str(message.from_user.id): message.text})
     send = bot.send_message(message.chat.id, 'Введите пароль:')
-    bot.register_next_step_handler(send, auth_handler)
+    bot.register_next_step_handler(send, auth_handler, login=message.text)
 
-def auth_handler(message):
-    if IS_PRODUCTION_MODE:
-        try:
-            session = SessionLocal(bind=engine)
-            crud.authenticate(message.from_user.id, session_auth[str(message.from_user.id)], message.text, session)
-            session.close()
-        except BaseException:
-            bot.send_message(message.chat.id, 'Неправильный пароль. Попробуйте ещё раз или обратитесь к администрации.')
-            auth_query(message)
-            return
-        finally:
-            if str(message.from_user.id) in session_auth:
-                session_auth.pop(str(message.from_user.id))
-        bot.send_message(message.chat.id, 'Вы успешно аутентифицировались')
-        bot.delete_message(message.chat.id, message.id)
-        message_handler(message=message)
-    else:
-        print("Как будто пользователь попытался аутентифицироваться: " + message.text)
+def auth_handler(message, login=None):
+    try:
+        session = SessionLocal(bind=engine)
+        crud.authenticate(message.from_user.id, login, message.text, session)
+        session.close()
+    except BaseException:
+        bot.send_message(message.chat.id, 'Неправильный пароль. Попробуйте ещё раз или обратитесь к администрации.')
+        auth_query(message)
+        return
+    finally:
+        session_set.discard(message.from_user.id)
+    bot.send_message(message.chat.id, 'Вы успешно аутентифицировались')
+    bot.delete_message(message.chat.id, message.id)
+    message_handler(message=message)
 # endregion
 # endregion
 
@@ -426,12 +387,10 @@ def kpd_handler(tg_id: int) -> None:
     if not user:
         session.close()
         return
-    
     events = crud.get_event_by_event_target_id(user, 5, session)
-    session.close()
-
     ans = "\n".join(["Дата: " + str(i.created_at) + "\nПричина: " + str(i.message) + "\nКол-во баллов: " +
                      str(i.kpd_diff) + "\n----------" for i in events]) if events else "У вас нет КПД"
+    session.close()
     bot.send_message(tg_id, "История КПД\n----------\n" + ans)
 
 
@@ -460,6 +419,7 @@ def cancel_all_notifications(tg_id: int) -> None:
     user = crud.get_user_by_tg_id(str(tg_id), session)
     crud.cancel_all_notifications(user, session=session)
     session.close()
+    bot.send_message(tg_id, "Все напоминания успешно удалены")
 
 
 # GET LIST POSITIVE KPD
@@ -473,9 +433,9 @@ def get_list_kpd(tg_id: int) -> None:
     session.close()
     if not users:
         return 
-    ans = "positive KPD:\n"
+    ans = "Список КПД:\n"
     for i in users:
-        ans += str(i.student_id) + i.name + " " + i.sname + " " + str(i.kpd_score) + "\n"
+        ans += str(i.student_id) + " " + i.name + " " + i.sname + " " + str(i.kpd_score) + "\n"
     bot.send_message(tg_id, ans)
 
 
