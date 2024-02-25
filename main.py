@@ -419,6 +419,7 @@ def cancel_all_notifications(tg_id: int) -> None:
     user = crud.get_user_by_tg_id(str(tg_id), session)
     crud.cancel_all_notifications(user, session=session)
     session.close()
+    bot.send_message(tg_id, "Все напоминания успешно удалены")
 
 
 # GET LIST POSITIVE KPD
