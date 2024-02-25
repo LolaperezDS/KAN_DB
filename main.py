@@ -118,11 +118,15 @@ def choose_kpd_from_other(message):
         session_set.discard(message.from_user.id)
         bot.send_message(message.from_user.id, "Студент не найден")
         return
+    
     events = session.query(models.EventLogTable).filter(models.EventLogTable.event_target_id == user_target.id).all()
-    if not events:
-        bot.send_message(message.from_user.id, "Кпд за последнее время не было")
-    answer = functions.event_converter_to_message(events=events)
     session.close()
+    if not events:
+        session_set.discard(message.from_user.id)
+        bot.send_message(message.from_user.id, "Кпд за последнее время не было")
+        return
+    
+    answer = functions.event_converter_to_message(events=events)
     send = bot.send_message(message.from_user.id, "Напишите номер конкретного случая: \n" + answer)
     bot.register_next_step_handler(send, get_info_about_concrete_kpd)
     
@@ -307,17 +311,14 @@ def change_password_handler(message):
 
     old_pwd = message.text
 
-    if not old_pwd.isalnum():
+    if not old_pwd.isalnum() or old_pwd != user.password:
         bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
         return
 
-    if old_pwd == user.password:
-        bot.delete_message(message.chat.id, message.id)
-        send = bot.send_message(message.from_user.id,
-                                "Введите новый пароль (он должен содержать только английские буквы и цифры):")
-        bot.register_next_step_handler(send, change_password_final)
-    else:
-        bot.reply_to(message, "Не удалось сменить пароль. Вы ввели некорректный старый пароль.")
+    bot.delete_message(message.chat.id, message.id)
+    send = bot.send_message(message.from_user.id,
+                            "Введите новый пароль (он должен содержать только английские буквы и цифры):")
+    bot.register_next_step_handler(send, change_password_final)
     session.close()
 
 
@@ -431,9 +432,9 @@ def get_list_kpd(tg_id: int) -> None:
     session.close()
     if not users:
         return 
-    ans = "positive KPD:\n"
+    ans = "Список КПД:\n"
     for i in users:
-        ans += str(i.student_id) + i.name + " " + i.sname + " " + str(i.kpd_score) + "\n"
+        ans += str(i.student_id) + " " + i.name + " " + i.sname + " " + str(i.kpd_score) + "\n"
     bot.send_message(tg_id, ans)
 
 
