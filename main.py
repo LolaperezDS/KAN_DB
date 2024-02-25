@@ -119,6 +119,8 @@ def choose_kpd_from_other(message):
         bot.send_message(message.from_user.id, "Студент не найден")
         return
     events = session.query(models.EventLogTable).filter(models.EventLogTable.event_target_id == user_target.id).all()
+    if not events:
+        bot.send_message(message.from_user.id, "Кпд за последнее время не было")
     answer = functions.event_converter_to_message(events=events)
     session.close()
     send = bot.send_message(message.from_user.id, "Напишите номер конкретного случая: \n" + answer)
@@ -181,7 +183,6 @@ def set_kpd_fullname_getter(message) -> None:
     if IS_PRODUCTION_MODE:
         session = SessionLocal(bind=engine)
         user = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text)).first()
-        user_initiator = crud.get_user_by_tg_id(message.from_user.id, session)
         event_types = crud.get_all_event_types(session)
         session.close()
         if user:
@@ -201,7 +202,7 @@ def set_kpd_fullname_getter(message) -> None:
     bot.register_next_step_handler(send, set_kpd_type_getter, e_types=event_types, target_id=target_id)
 
 
-def set_kpd_type_getter(message, e_types: [models.EventTypeTable] = None, target_id: int = None) -> None:
+def set_kpd_type_getter(message, e_types: list[models.EventTypeTable] = None, target_id: int = None) -> None:
     if not e_types or not target_id or not message.text.isdigit() or int(message.text) >= len(e_types):
         session_set.discard(message.from_user.id)
         return
