@@ -1,3 +1,8 @@
+DROP DATABASE kandb;
+CREATE DATABASE kandb;
+
+\c kandb
+
 CREATE TABLE UserTable(
   id SERIAL PRIMARY KEY,
   student_id integer UNIQUE NOT NULL,

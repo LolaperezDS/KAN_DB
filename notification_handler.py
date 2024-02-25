@@ -17,21 +17,24 @@ IS_PRODUCTION_MODE = bool(int(os.environ.get("IS_PRODUCTION_MODE")))
 FREEZE_TIME = 10
 
 
-async def async_notificate_all_users(users: [str], message: str, bot_implementer: telebot.TeleBot) -> None:
-    notificate_all_users(users, message, bot_implementer)
+async def async_notificate_all_users(users: list[str], message: str, bot_implementer: telebot.TeleBot) -> None:
+    yield notificate_all_users(users, message, bot_implementer)
     return
 
 
-def notificate_all_users(users: [str], message: str, bot_implementer: telebot.TeleBot):
+async def notificate_all_users(users: list[str], message: str, bot_implementer: telebot.TeleBot):
     for user in users:
         try:
-            bot_implementer.send_message(int(user), message)
+            yield notify_one_user(int(user), message)
         except telebot.apihelper.ApiTelegramException:
             print("Не удалось напомнить пользователю " + str(user))
 
+async def notify_one_user(user: str, message: str, bot: telebot.Telebot):
+    yield bot.send_message(int(user), message)
+
 
 def message_to_notificate_constructor(notification: models.NotificationTable) -> str:
-    return "До события часов: " + str(notification.remind_hours) + "\nСуть события: " + notification.message
+    return "До события часов: " + str(notification.remind_hours) + "\nСообщение: " + notification.message
 
 
 if __name__ == "__main__":
