@@ -1,3 +1,0 @@
-[tool.pytest.ini_options]
-pythonpath = [".", "sql_app"]
-asyncio_mode = "auto"

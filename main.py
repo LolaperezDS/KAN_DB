@@ -23,12 +23,7 @@ session_set = set()
 @bot.message_handler(func=lambda message: True)
 def message_handler(message):
     session = SessionLocal(bind=engine)
-    user = None
-    if IS_PRODUCTION_MODE:
-        user = crud.get_user_by_tg_id(message.from_user.id, session)
-    else:
-        if input("is authed? y/n") == "y":
-            user = models.UserTable(role_id=int(input("test role:")), full_name="TESTNAME")
+    user = crud.get_user_by_tg_id(message.from_user.id, session)
     if user is None:
         auth_query(message)
     elif user.role.acsess_level >= 3:
@@ -183,22 +178,18 @@ def set_kpd_fullname_getter(message) -> None:
         send = bot.send_message(message.from_user.id, "Incorrect input")
         session_set.discard(message.from_user.id)
         return
-    target_id = None
-    if IS_PRODUCTION_MODE:
-        session = SessionLocal(bind=engine)
-        user = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text)).first()
-        event_types = crud.get_all_event_types(session)
-        session.close()
-        if user:
-            target_id = user.id
-        else:
-            bot.send_message(message.from_user.id, "Студент не найден.")
-            session_set.discard(message.from_user.id)
-            return
-    else:
-        user = models.UserTable(full_name="TEST TEST")
-        session_set.discard(message.from_user.id)
     
+    session = SessionLocal(bind=engine)
+    user = session.query(models.UserTable).filter(models.UserTable.student_id == int(message.text)).first()
+    event_types = crud.get_all_event_types(session)
+    session.close()
+
+    if not user:
+        bot.send_message(message.from_user.id, "Студент не найден.")
+        session_set.discard(message.from_user.id)
+        return
+    
+    target_id = user.id
     answer: str = "Выберите тип причины:"
     for i in range(len(event_types)):
         answer += "\n[" + str(i) + "]" + event_types[i].name
@@ -432,6 +423,7 @@ def get_list_kpd(tg_id: int) -> None:
     users = crud.get_users_with_positive_kpd(user, session)
     session.close()
     if not users:
+        bot.send_message(tg_id, "Нет таких")
         return 
     ans = "Список КПД:\n"
     for i in users:
