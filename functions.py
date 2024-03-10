@@ -7,7 +7,7 @@ def str_format_to_len(l: int, s: str):
     return s + " " * (len(s) - l)
 
 
-def event_converter_to_message(events: [EventLogTable]) -> [str]:
+def event_converter_to_message(events: list[EventLogTable]) -> list[str]:
     result = ""
     if not events:
         return "Нет событий"
@@ -17,7 +17,7 @@ def event_converter_to_message(events: [EventLogTable]) -> [str]:
 
 
 # O(n) avg
-def sort_file_signatures(photo: [str]) -> [str]:
+def sort_file_signatures(photo: list[str]) -> list[str]:
     set_of_signatures = set()
     ans_list = []
     for i in photo:
