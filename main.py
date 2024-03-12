@@ -1,5 +1,4 @@
 import telebot
-from telebot.types import MessageAutoDeleteTimerChanged
 import markups
 import sql_app.utils.crud as crud
 import sql_app.models.models as models
