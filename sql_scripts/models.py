@@ -3,8 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, TIMESTAMP, Boolean, Text, VARCHAR, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-from sql_app.database.database import engine
-from sql_app.database.database import Base
+from database import engine, Base
 
 from dotenv import load_dotenv
 import os

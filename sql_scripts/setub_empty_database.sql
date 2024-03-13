@@ -22,12 +22,6 @@ CREATE TABLE RoleTable(
 );
 
 
-CREATE TABLE FloorTable(
-  id SERIAL PRIMARY KEY,
-  number integer NOT NULL
-);
-
-
 CREATE TABLE RoomTable(
   id SERIAL PRIMARY KEY,
   number VARCHAR(8) NOT NULL
@@ -68,24 +62,15 @@ CREATE TABLE NotificationTable(
   is_notificated bool NOT NULL DEFAULT FALSE
 );
 
-CREATE TABLE ThroughTable(
-  id SERIAL PRIMARY KEY,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  is_done bool NOT NULL DEFAULT FALSE
-);
-
 
 ALTER TABLE UserTable ADD role_id integer REFERENCES RoleTable(id);
 ALTER TABLE UserTable ADD room_id integer REFERENCES RoomTable(id);
-ALTER TABLE RoomTable ADD floor_id integer REFERENCES FloorTable(id);
 
 ALTER TABLE FeedbackTable ADD initiator_id integer REFERENCES UserTable(id);
 ALTER TABLE EventLogTable ADD event_initiator_id integer REFERENCES UserTable(id);
 ALTER TABLE EventLogTable ADD event_type_id integer REFERENCES EventTypeTable(id);
 
 ALTER TABLE NotificationTable ADD initiator_id integer REFERENCES UserTable(id);
-ALTER TABLE ThroughTable ADD initiator_id integer REFERENCES UserTable(id);
-ALTER TABLE ThroughTable ADD floor_id integer REFERENCES FloorTable(id);
 ALTER TABLE ImageTable ADD event_id integer REFERENCES EventLogTable(id);
 
 INSERT INTO RoleTable (name, acsess_level) VALUES ('Student', 1);
@@ -94,13 +79,3 @@ INSERT INTO RoleTable (name, acsess_level) VALUES ('Admin', 3);
 
 INSERT INTO EventTypeTable (name) VALUES ('sankom kpd');
 INSERT INTO EventTypeTable (name) VALUES ('gro kpd');
-
-INSERT INTO FloorTable (number) VALUES (1);
-INSERT INTO FloorTable (number) VALUES (2);
-INSERT INTO FloorTable (number) VALUES (3);
-INSERT INTO FloorTable (number) VALUES (4);
-INSERT INTO FloorTable (number) VALUES (5);
-INSERT INTO FloorTable (number) VALUES (6);
-INSERT INTO FloorTable (number) VALUES (7);
-INSERT INTO FloorTable (number) VALUES (8);
-INSERT INTO FloorTable (number) VALUES (9);

@@ -18,3 +18,5 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 2  # 2 days
 router = APIRouter(tags=["Authentication"])
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
+
+

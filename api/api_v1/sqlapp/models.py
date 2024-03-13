@@ -57,16 +57,6 @@ class RoomTable(Base):
 
     users = relationship("UserTable", back_populates="room")
 
-    floor_id = Column(Integer, ForeignKey("floortable.id"))
-    floor = relationship("FloorTable", back_populates="rooms")
-
-
-class FloorTable(Base):
-    __tablename__ = 'floortable'
-    id = Column(Integer, primary_key=True, index=True)
-    number = Column(Integer, nullable=False)
-    rooms = relationship("RoomTable", back_populates="floor")
-
 
 class EventTypeTable(Base):
     __tablename__ = 'eventtypetable'
@@ -120,15 +110,3 @@ class FeedbackTable(Base):
     feedback_score = Column(Integer, nullable=False)
 
     initiator_id = Column(Integer, ForeignKey("usertable.id"))
-
-
-class ThroughTable(Base):
-    __tablename__ = 'throughtable'
-    id = Column(Integer, primary_key=True)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    is_active = Column(Boolean, nullable=False)
-
-    initiator_id = Column(Integer, ForeignKey("usertable.id"))
-    floor_id = Column(Integer, ForeignKey("floortable.id"))
-
-
