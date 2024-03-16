@@ -967,7 +967,7 @@ COPY public.usertable (id, student_id, is_active, tg_id, login, password, name, 
 223	132078	t	\N	HJxCX89H	61ozk7ej	Никита	Николаев	0	1	818
 224	132132	t	\N	NFs6q8aD	g3URWpC5	Денис	Матвиенко	0	1	817
 225	132178	t	\N	TheBestChel	bXfHMPro	Ярослав	Каров	0	1	820
-226	132189	t	\N	s1vYHPZV	DCXTKIzj	Нияз	Хайруллов	0	1	820
+226	132189	t	\N	Geravod orohub02	Нияз	Хайруллов	0	1	820
 227	132161	t	\N	n7fDxAif	NDHauSgs	Иван	Микрюков	0	1	817
 228	132107	t	\N	PgY6TnFD	UcNxzFs8	Руслан	Хазбуранов	0	1	813
 229	132109	t	\N	qwMc8kkl	xtWNRK9C	Никита	Розинов	0	1	813
