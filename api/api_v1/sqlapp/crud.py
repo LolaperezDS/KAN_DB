@@ -1,5 +1,5 @@
-from models import *
-from database import *
+from api_v1.sqlapp.models import *
+from api_v1.sqlapp.database import *
 from service.pwd_functions import verify_password
 from sqlalchemy import select
 
@@ -13,7 +13,7 @@ async def authenticate_user(session: AsyncSession, username: str, password: str)
 
 async def get_user(username: str,
                    session: AsyncSession) -> UserTable | None:
-    statement = select(UserTable).where(UserTable.username == username)
-    user = (await session.execute(statement)).scalar_one_or_none()
+    statement = select(UserTable).where(UserTable.login == username).first()
+    user = (await session.execute(statement)).scalars()
     return user
 

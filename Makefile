@@ -10,6 +10,7 @@ install:
 	pip3 install pyTelegramBotAPI
 	pip3 install python-dotenv
 	pip3 install sqlalchemy
+	pip install asyncpg
 
 
 run:

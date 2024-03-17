@@ -2,17 +2,13 @@ import enum
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, TIMESTAMP, Boolean, Text, VARCHAR, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-from database import engine, Base
+from api_v1.sqlapp.database import engine, Base
 
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
 
-IS_PRODUCTION_MODE = bool(int(os.environ.get("IS_PRODUCTION_MODE")))
-
-Base.metadata.create_all(engine) if IS_PRODUCTION_MODE else print("DB not connected")
-
+# Base.metadata.create_all(engine)
 
 # Определяем типы обратной связи
 class FeedbackScore(enum.Enum):
