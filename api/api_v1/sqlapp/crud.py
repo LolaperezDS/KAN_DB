@@ -13,7 +13,7 @@ async def authenticate_user(session: AsyncSession, username: str, password: str)
 
 async def get_user(username: str,
                    session: AsyncSession) -> UserTable | None:
-    statement = select(UserTable).where(UserTable.login == username).first()
-    user = (await session.execute(statement)).scalars()
+    statement = select(UserTable).where(UserTable.login == username)
+    user = (await session.execute(statement)).scalar_one_or_none()
     return user
 

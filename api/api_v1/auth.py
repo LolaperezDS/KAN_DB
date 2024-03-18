@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status, APIRouter
 
 from jose import JWTError, jwt
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from api_v1.sqlapp.database import *
 from api_v1.sqlapp.crud import *
@@ -20,10 +20,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 2  # 2 days
 
 router = APIRouter(tags=["Authentication"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/token")
 
-async def get_current_user(token: str = Depends(oauth2_scheme),
-                           session: AsyncSession = Depends(get_scoped_session)):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
+                           session: Annotated[AsyncSession, Depends(get_scoped_session)]) -> UserTable:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -39,7 +39,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
     except JWTError:
         raise credentials_exception
     user = get_user(token_data.username, session=session)
-
+    await user
     if not user:
         raise credentials_exception
     return user
