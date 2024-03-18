@@ -31,10 +31,10 @@ class UserTable(Base):
     kpd_score = Column(Integer, nullable=False)
 
     role_id = Column(Integer, ForeignKey("roletable.id"))
-    role = relationship("RoleTable", back_populates="users")
+    role = relationship("RoleTable", back_populates="users", lazy=False)
 
     room_id = Column(Integer, ForeignKey("roomtable.id"))
-    room = relationship("RoomTable", back_populates="users")
+    room = relationship("RoomTable", back_populates="users", lazy=False)
 
 
 # Определяем модель для привилегий пользователей
@@ -43,7 +43,7 @@ class RoleTable(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(VARCHAR(length=32), nullable=False)
     acsess_level = Column(Integer, nullable=False)
-    users = relationship("UserTable", back_populates="role")
+    users = relationship("UserTable", back_populates="role", lazy=False)
 
 
 class RoomTable(Base):
@@ -51,7 +51,7 @@ class RoomTable(Base):
     id = Column(Integer, primary_key=True, index=True)
     number = Column(VARCHAR(length=8), nullable=False)
 
-    users = relationship("UserTable", back_populates="room")
+    users = relationship("UserTable", back_populates="room", lazy=False)
 
 
 class EventTypeTable(Base):
@@ -66,7 +66,7 @@ class ImageTable(Base):
     image_id = Column(VARCHAR(length=128), nullable=False)
 
     event_id = Column(Integer, ForeignKey("eventlogtable.id"))
-    event = relationship("EventLogTable", back_populates="images")
+    event = relationship("EventLogTable", back_populates="images", lazy=False)
 
 
 # Определяем модель для событий
@@ -81,7 +81,7 @@ class EventLogTable(Base):
     event_initiator_id = Column(Integer, ForeignKey("usertable.id"))
 
     event_type_id = Column(Integer, ForeignKey("eventtypetable.id"))
-    images = relationship("ImageTable", back_populates="event")
+    images = relationship("ImageTable", back_populates="event", lazy=False)
 
 
 # Определяем модель для уведомлений

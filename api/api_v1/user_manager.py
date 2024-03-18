@@ -18,7 +18,7 @@ async def get_myself(current_user : Annotated[UserTable, Depends(get_current_act
     pd_user = UserGet(name=current_user.name,
                       sname=current_user.sname,
                       kpd=current_user.kpd_score,
-                      role=current_user.role,
+                      role=current_user.role.name,
                       stud_id=current_user.student_id,
-                      room=current_user.room)
+                      room=current_user.room.number)
     return pd_user

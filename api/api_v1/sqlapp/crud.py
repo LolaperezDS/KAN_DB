@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 
 async def authenticate_user(session: AsyncSession, username: str, password: str):
-    user = (await session.execute(select(UserTable).where(UserTable.login == username))).scalar_one_or_none()
+    user = (await session.execute(select(UserTable).where(UserTable.login == username))).unique().scalar_one_or_none()
 
     if not user or not verify_password(password, user.password):
         return None
@@ -14,6 +14,6 @@ async def authenticate_user(session: AsyncSession, username: str, password: str)
 async def get_user(username: str,
                    session: AsyncSession) -> UserTable | None:
     statement = select(UserTable).where(UserTable.login == username)
-    user = (await session.execute(statement)).scalar_one_or_none()
+    user = (await session.execute(statement)).unique().scalar_one_or_none()
     return user
 
