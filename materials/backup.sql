@@ -274,6 +274,42 @@ ALTER SEQUENCE public.roomtable_id_seq OWNED BY public.roomtable.id;
 
 
 --
+-- Name: sankomtable; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sankomtable (
+    id integer NOT NULL,
+    mark integer,
+    initiator_id integer,
+    room_id integer
+);
+
+
+ALTER TABLE public.sankomtable OWNER TO postgres;
+
+--
+-- Name: sankomtable_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sankomtable_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.sankomtable_id_seq OWNER TO postgres;
+
+--
+-- Name: sankomtable_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.sankomtable_id_seq OWNED BY public.sankomtable.id;
+
+
+--
 -- Name: usertable; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -314,6 +350,45 @@ ALTER TABLE public.usertable_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.usertable_id_seq OWNED BY public.usertable.id;
+
+
+--
+-- Name: worktickettable; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.worktickettable (
+    id integer NOT NULL,
+    creator integer NOT NULL,
+    deadline timestamp without time zone NOT NULL,
+    kpd_rollback integer NOT NULL,
+    ticket_hash character varying(256) NOT NULL,
+    text_task text NOT NULL,
+    performer_id integer
+);
+
+
+ALTER TABLE public.worktickettable OWNER TO postgres;
+
+--
+-- Name: worktickettable_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.worktickettable_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.worktickettable_id_seq OWNER TO postgres;
+
+--
+-- Name: worktickettable_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.worktickettable_id_seq OWNED BY public.worktickettable.id;
 
 
 --
@@ -366,10 +441,24 @@ ALTER TABLE ONLY public.roomtable ALTER COLUMN id SET DEFAULT nextval('public.ro
 
 
 --
+-- Name: sankomtable id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sankomtable ALTER COLUMN id SET DEFAULT nextval('public.sankomtable_id_seq'::regclass);
+
+
+--
 -- Name: usertable id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.usertable ALTER COLUMN id SET DEFAULT nextval('public.usertable_id_seq'::regclass);
+
+
+--
+-- Name: worktickettable id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.worktickettable ALTER COLUMN id SET DEFAULT nextval('public.worktickettable_id_seq'::regclass);
 
 
 --
@@ -385,8 +474,9 @@ COPY public.eventlogtable (id, created_at, message, kpd_diff, event_target_id, e
 --
 
 COPY public.eventtypetable (id, name) FROM stdin;
-1	sankom kpd
-2	gro kpd
+3	Sanitary
+4	GRO
+5	Other
 \.
 
 
@@ -420,8 +510,9 @@ COPY public.notificationtable (id, created_at, event_date, remind_hours, message
 
 COPY public.roletable (id, name, acsess_level) FROM stdin;
 1	Student	1
-2	Moderator	2
-3	Admin	3
+4	Sanitary	3
+5	GRO	3
+6	Admin	5
 \.
 
 
@@ -740,6 +831,14 @@ COPY public.roomtable (id, number) FROM stdin;
 
 
 --
+-- Data for Name: sankomtable; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.sankomtable (id, mark, initiator_id, room_id) FROM stdin;
+\.
+
+
+--
 -- Data for Name: usertable; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -966,8 +1065,8 @@ COPY public.usertable (id, student_id, is_active, tg_id, login, password, name, 
 222	132156	t	\N	6fuNg1Uj	sEd4CWld	Александр	Ищейкин	0	1	814
 223	132078	t	\N	HJxCX89H	61ozk7ej	Никита	Николаев	0	1	818
 224	132132	t	\N	NFs6q8aD	g3URWpC5	Денис	Матвиенко	0	1	817
-225	132178	t	\N	TheBestChel	bXfHMPro	Ярослав	Каров	0	1	820
-226	132189	t	\N	Geravod orohub02	Нияз	Хайруллов	0	1	820
+225	132178	t	\N	NXzesaNf	bXfHMPro	Ярослав	Каров	0	1	820
+226	132189	t	\N	s1vYHPZV	DCXTKIzj	Нияз	Хайруллов	0	1	820
 227	132161	t	\N	n7fDxAif	NDHauSgs	Иван	Микрюков	0	1	817
 228	132107	t	\N	PgY6TnFD	UcNxzFs8	Руслан	Хазбуранов	0	1	813
 229	132109	t	\N	qwMc8kkl	xtWNRK9C	Никита	Розинов	0	1	813
@@ -1251,6 +1350,14 @@ COPY public.usertable (id, student_id, is_active, tg_id, login, password, name, 
 
 
 --
+-- Data for Name: worktickettable; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.worktickettable (id, creator, deadline, kpd_rollback, ticket_hash, text_task, performer_id) FROM stdin;
+\.
+
+
+--
 -- Name: eventlogtable_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1261,7 +1368,7 @@ SELECT pg_catalog.setval('public.eventlogtable_id_seq', 1, false);
 -- Name: eventtypetable_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.eventtypetable_id_seq', 2, true);
+SELECT pg_catalog.setval('public.eventtypetable_id_seq', 5, true);
 
 
 --
@@ -1289,7 +1396,7 @@ SELECT pg_catalog.setval('public.notificationtable_id_seq', 1, false);
 -- Name: roletable_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.roletable_id_seq', 3, true);
+SELECT pg_catalog.setval('public.roletable_id_seq', 6, true);
 
 
 --
@@ -1300,10 +1407,24 @@ SELECT pg_catalog.setval('public.roomtable_id_seq', 1026, true);
 
 
 --
+-- Name: sankomtable_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.sankomtable_id_seq', 1, false);
+
+
+--
 -- Name: usertable_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
 SELECT pg_catalog.setval('public.usertable_id_seq', 505, true);
+
+
+--
+-- Name: worktickettable_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.worktickettable_id_seq', 1, false);
 
 
 --
@@ -1363,6 +1484,14 @@ ALTER TABLE ONLY public.roomtable
 
 
 --
+-- Name: sankomtable sankomtable_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sankomtable
+    ADD CONSTRAINT sankomtable_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: usertable usertable_login_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1392,6 +1521,14 @@ ALTER TABLE ONLY public.usertable
 
 ALTER TABLE ONLY public.usertable
     ADD CONSTRAINT usertable_tg_id_key UNIQUE (tg_id);
+
+
+--
+-- Name: worktickettable worktickettable_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.worktickettable
+    ADD CONSTRAINT worktickettable_pkey PRIMARY KEY (id);
 
 
 --
@@ -1435,6 +1572,22 @@ ALTER TABLE ONLY public.notificationtable
 
 
 --
+-- Name: sankomtable sankomtable_initiator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sankomtable
+    ADD CONSTRAINT sankomtable_initiator_id_fkey FOREIGN KEY (initiator_id) REFERENCES public.usertable(id);
+
+
+--
+-- Name: sankomtable sankomtable_room_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sankomtable
+    ADD CONSTRAINT sankomtable_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.roomtable(id);
+
+
+--
 -- Name: usertable usertable_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1448,6 +1601,14 @@ ALTER TABLE ONLY public.usertable
 
 ALTER TABLE ONLY public.usertable
     ADD CONSTRAINT usertable_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.roomtable(id);
+
+
+--
+-- Name: worktickettable worktickettable_performer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.worktickettable
+    ADD CONSTRAINT worktickettable_performer_id_fkey FOREIGN KEY (performer_id) REFERENCES public.usertable(id);
 
 
 --
