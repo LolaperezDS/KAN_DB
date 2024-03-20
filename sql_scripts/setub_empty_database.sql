@@ -17,7 +17,7 @@ CREATE TABLE UserTable(
 
 CREATE TABLE RoleTable(
   id SERIAL PRIMARY KEY,
-  name VARCHAR(64) NOT NULL,
+  name VARCHAR(32) NOT NULL,
   acsess_level integer NOT NULL
 );
 
@@ -50,7 +50,7 @@ CREATE TABLE EventLogTable(
 
 CREATE TABLE ImageTable(
   id SERIAL PRIMARY KEY,
-  image_id VARCHAR(128) NOT NULL
+  image_id VARCHAR(256) NOT NULL
 );
 
 CREATE TABLE NotificationTable(
@@ -62,20 +62,43 @@ CREATE TABLE NotificationTable(
   is_notificated bool NOT NULL DEFAULT FALSE
 );
 
+CREATE TABLE SankomTable(
+  id SERIAL PRIMARY KEY,
+  mark integer
+);
+
+CREATE TABLE WorkTicketTable(
+  id SERIAL PRIMARY KEY,
+  creator integer NOT NULL,
+  deadline TIMESTAMP NOT NULL,
+  kpd_rollback integer NOT NULL,
+  ticket_hash VARCHAR(256) NOT NULL,
+  text_task TEXT NOT NULL
+);
+
 
 ALTER TABLE UserTable ADD role_id integer REFERENCES RoleTable(id);
 ALTER TABLE UserTable ADD room_id integer REFERENCES RoomTable(id);
 
 ALTER TABLE FeedbackTable ADD initiator_id integer REFERENCES UserTable(id);
+
 ALTER TABLE EventLogTable ADD event_initiator_id integer REFERENCES UserTable(id);
 ALTER TABLE EventLogTable ADD event_type_id integer REFERENCES EventTypeTable(id);
 
 ALTER TABLE NotificationTable ADD initiator_id integer REFERENCES UserTable(id);
+
 ALTER TABLE ImageTable ADD event_id integer REFERENCES EventLogTable(id);
 
-INSERT INTO RoleTable (name, acsess_level) VALUES ('Student', 1);
-INSERT INTO RoleTable (name, acsess_level) VALUES ('Moderator', 2);
-INSERT INTO RoleTable (name, acsess_level) VALUES ('Admin', 3);
+ALTER TABLE SankomTable ADD initiator_id integer REFERENCES UserTable(id);
+ALTER TABLE SankomTable ADD room_id integer REFERENCES RoomTable(id);
 
-INSERT INTO EventTypeTable (name) VALUES ('sankom kpd');
-INSERT INTO EventTypeTable (name) VALUES ('gro kpd');
+
+
+INSERT INTO RoleTable (name, acsess_level) VALUES ('Student', 1);
+INSERT INTO RoleTable (name, acsess_level) VALUES ('Sanitary', 3);
+INSERT INTO RoleTable (name, acsess_level) VALUES ('GRO', 3);
+INSERT INTO RoleTable (name, acsess_level) VALUES ('Admin', 5);
+
+INSERT INTO EventTypeTable (name) VALUES ('Sanitary');
+INSERT INTO EventTypeTable (name) VALUES ('GRO');
+INSERT INTO EventTypeTable (name) VALUES ('Other');

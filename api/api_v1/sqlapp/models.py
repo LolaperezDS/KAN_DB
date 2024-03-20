@@ -106,3 +106,28 @@ class FeedbackTable(Base):
     feedback_score = Column(Integer, nullable=False)
 
     initiator_id = Column(Integer, ForeignKey("usertable.id"))
+
+
+class SankomTable(Base):
+    __tablename__ = 'sankomtable'
+
+    id = Column(Integer, primary_key=True)
+    mark = Column(Integer)
+
+    initiator_id = Column(Integer, ForeignKey('usertable.id'))
+    initiator = relationship("UserTable", lazy=False)
+
+    room_id = Column(Integer, ForeignKey('roomtable.id'))
+    room = relationship("RoomTable", lazy=False)
+
+class WorkTicketTable(Base):
+    __tablename__ = 'worktickettable'
+
+    id = Column(Integer, primary_key=True)
+    deadline = Column(TIMESTAMP, nullable=False)
+    kpd_rollback = Column(Integer, nullable=False)
+    ticket_hash = Column(String(256), nullable=False)
+    text_task = Column(Text, nullable=False)
+
+    performer_id = Column(Integer, ForeignKey('usertable.id'))
+    performer = relationship("UserTable", lazy=False)

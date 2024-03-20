@@ -13,7 +13,7 @@ from .auth import get_current_active_user
 
 router = APIRouter(tags=['UserManage'])
 
-@router.get("/me")
+@router.get("/me", response_model=UserGet)
 async def get_myself(current_user : Annotated[UserTable, Depends(get_current_active_user)]):
     pd_user = UserGet(name=current_user.name,
                       sname=current_user.sname,
