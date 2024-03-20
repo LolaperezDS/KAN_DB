@@ -92,6 +92,7 @@ ALTER TABLE ImageTable ADD event_id integer REFERENCES EventLogTable(id);
 ALTER TABLE SankomTable ADD initiator_id integer REFERENCES UserTable(id);
 ALTER TABLE SankomTable ADD room_id integer REFERENCES RoomTable(id);
 
+ALTER TABLE WorkTicketTable ADD performer_id integer REFERENCES UserTable(id);
 
 
 INSERT INTO RoleTable (name, acsess_level) VALUES ('Student', 1);
