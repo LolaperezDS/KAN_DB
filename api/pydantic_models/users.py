@@ -5,7 +5,7 @@ class UserGet(BaseModel):
     name: str
     sname: str
     kpd: int
-    role : str
+    role : str | None
     stud_id: int
     room: str
 

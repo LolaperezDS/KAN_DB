@@ -108,3 +108,22 @@ async def post_user_room_change(stud_id: int,
         )
 
     await change_room_user(roomid=room.id, stud_id=stud_id, session=session)
+
+
+@router.get("/get/{stud_id}", response_model=UserGet)
+async def get_other(stud_id: int,
+                    current_user : Annotated[UserTable, Depends(get_current_active_user)],
+                    session: Annotated[AsyncSession, Depends(get_scoped_session)]):
+    if not check_acsess_level(current_user, 2):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="доступ к выполнению запрещен"
+        )
+
+    student: UserTable = await get_user_by_student_id(stud_id=stud_id, session=session)
+    pd_user = UserGet(name=student.name,
+                      sname=student.sname,
+                      kpd=student.kpd_score,
+                      stud_id=student.student_id,
+                      room=student.room.number)
+    return pd_user
