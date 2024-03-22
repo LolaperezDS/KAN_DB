@@ -8,3 +8,10 @@ class UserGet(BaseModel):
     role : str
     stud_id: int
     room: str
+
+
+class UserCreate(BaseModel):
+    name: str
+    sname: str
+    stud_id: int
+    room: str
