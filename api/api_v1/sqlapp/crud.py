@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from api_v1.sqlapp.models import *
 from api_v1.sqlapp.database import *
 from service.pwd_functions import verify_password
-from sqlalchemy import select
+from sqlalchemy import select, update, delete
 
 
 async def authenticate_user(session: AsyncSession, username: str, password: str):
@@ -35,3 +35,25 @@ async def get_room_by_name(name: str,
     if not room:
         return None
     return room
+
+
+async def get_user_by_student_id(stud_id: str,
+                                session: AsyncSession) -> UserTable | None:
+    statement = select(UserTable).where(UserTable.student_id == stud_id)
+    user = (await session.execute(statement)).unique().scalar_one_or_none()
+    return user
+
+async def change_activity_user(activity: bool,
+                                stud_id: int,
+                                session: AsyncSession) -> None:
+    statement = update(UserTable).where(UserTable.student_id == stud_id).values(is_active = activity)
+    await session.execute(statement)
+    await session.commit()
+
+
+async def change_room_user(roomid: int,
+                           stud_id: int,
+                           session: AsyncSession) -> None:
+    statement = update(UserTable).where(UserTable.student_id == stud_id).values(room_id = roomid)
+    await session.execute(statement)
+    await session.commit()

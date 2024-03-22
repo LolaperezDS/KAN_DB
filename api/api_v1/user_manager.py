@@ -76,5 +76,35 @@ async def post_create_user(name: str,
 
 # Переменная activate управляет состоянием is_active в бд после запроса
 @router.post("/switch/active/{stud_id}/{activate}")
-async def post_user_deactivate():
-    pass
+async def post_user_deactivate(stud_id: int,
+                               activate: bool,
+                               current_user : Annotated[UserTable, Depends(get_current_active_user)],
+                               session: Annotated[AsyncSession, Depends(get_scoped_session)]):
+    if not check_acsess_level(current_user, 4):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="доступ к выполнению запрещен"
+        )
+    await change_activity_user(activity=activate, stud_id=stud_id, session=session)
+
+
+@router.post("/switch/room/{stud_id}/{room_name}")
+async def post_user_room_change(stud_id: int,
+                               room_name: str,
+                               current_user : Annotated[UserTable, Depends(get_current_active_user)],
+                               session: Annotated[AsyncSession, Depends(get_scoped_session)]):
+    if not check_acsess_level(current_user, 4):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="доступ к выполнению запрещен"
+        )
+
+    room: RoomTable = await get_room_by_name(room_name, session=session)
+
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Комната не найдена"
+        )
+
+    await change_room_user(roomid=room.id, stud_id=stud_id, session=session)
