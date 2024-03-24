@@ -2,6 +2,8 @@ import string, random
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # Я знаю, что пароли лучше хешировать
+    # Спроси потом меня, если интересно, почему тут именно так
     return plain_password == hashed_password
 
 

@@ -3,7 +3,6 @@ from datetime import datetime
 
 class ImageType(BaseModel):
     data: str
-    kpd_id: int
 
 
 class Kpd(BaseModel):

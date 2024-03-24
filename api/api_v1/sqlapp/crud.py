@@ -37,6 +37,12 @@ async def get_room_by_name(name: str,
     return room
 
 
+async def get_user_by_internal_id(id: int,
+                                session: AsyncSession) -> UserTable | None:
+    statement = select(UserTable).where(UserTable.id == id)
+    user = (await session.execute(statement)).unique().scalar_one_or_none()
+    return user
+
 async def get_user_by_student_id(stud_id: str,
                                 session: AsyncSession) -> UserTable | None:
     statement = select(UserTable).where(UserTable.student_id == stud_id)
@@ -57,3 +63,30 @@ async def change_room_user(roomid: int,
     statement = update(UserTable).where(UserTable.student_id == stud_id).values(room_id = roomid)
     await session.execute(statement)
     await session.commit()
+
+
+async def get_all_kpd_by_id(user_id: int, session: AsyncSession) -> list[EventLogTable]:
+    statement = select(EventLogTable).where(EventLogTable.event_target_id == user_id)
+    events = (await session.execute(statement=statement)).scalars().all()
+    return events
+
+
+async def add_images_to_event(images: list[ImageTable],
+                             session: AsyncSession) -> None:
+    for image in images:
+        session.add(image)
+    try:
+        await session.commit()
+    except IntegrityError as ex:
+        await session.rollback()
+        raise IntegrityError("Incorrect data")
+
+
+async def create_kpd(event: EventLogTable,
+                     session: AsyncSession) -> EventLogTable:
+    session.add(event)
+    try:
+        await session.commit()
+    except IntegrityError as ex:
+        await session.rollback()
+        raise IntegrityError("Incorrect data")
