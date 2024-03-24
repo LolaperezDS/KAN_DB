@@ -21,11 +21,17 @@ async def get_my_kpd(current_user : Annotated[UserTable, Depends(get_current_act
     events: list[EventLogTable] = await get_all_kpd_by_id(current_user.id, session)
     pd_kpd: list[KpdGet] = []
     for event in events:
-        
+        images: list[ImageTable] = await get_images_by_event_id(event_id=event.id, session=session)
+        pd_images: list[ImageType] = []
+        for image in images:
+            pd_images.append(ImageType(data=image.image_id))
 
         pd_kpd.append(KpdGet(message=event.message,
                              kpd_diff=event.kpd_diff,
-                             ))
+                             images=pd_images,
+                             initiator_id=event.event_initiator_id,
+                             date=event.created_at))
+    return pd_kpd
     
 
 
@@ -72,12 +78,3 @@ async def set_kpd(data: Kpd,
     await add_images_to_event(images=sql_images,
                               session=session)
 
-
-
-"""
-
-[ ] - My KPD
-[ ] - Other KPD
-[ ] - Set KPD
-[ ] - list KPD > 0
-"""

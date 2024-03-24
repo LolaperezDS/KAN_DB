@@ -67,13 +67,13 @@ async def change_room_user(roomid: int,
 
 async def get_all_kpd_by_id(user_id: int, session: AsyncSession) -> list[EventLogTable]:
     statement = select(EventLogTable).where(EventLogTable.event_target_id == user_id)
-    events = (await session.execute(statement=statement)).scalars().all()
+    events = (await session.execute(statement=statement)).unique().scalars().all()
     return events
 
 async def get_images_by_event_id(event_id: list[ImageTable],
                                 session: AsyncSession) -> list[ImageTable]:
     statement = select(ImageTable).where(ImageTable.event_id == event_id)
-    images = (await session.execute(statement=statement)).scalars().all()
+    images = (await session.execute(statement=statement)).unique().scalars().all()
     return images
 
 

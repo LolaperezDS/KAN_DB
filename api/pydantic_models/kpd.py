@@ -11,6 +11,10 @@ class Kpd(BaseModel):
     target_stud_id: int
     images: list[ImageType]
 
+    class Config:
+        orm_mode = True
+
+
 
 class KpdGet(Kpd):
     target_stud_id: int | None
