@@ -19,6 +19,14 @@ router = APIRouter(tags=['KpdManage'])
 async def get_my_kpd(current_user : Annotated[UserTable, Depends(get_current_active_user)],
                      session: Annotated[AsyncSession, Depends(get_scoped_session)]):
     events: list[EventLogTable] = await get_all_kpd_by_id(current_user.id, session)
+    pd_kpd: list[KpdGet] = []
+    for event in events:
+        
+
+        pd_kpd.append(KpdGet(message=event.message,
+                             kpd_diff=event.kpd_diff,
+                             ))
+    
 
 
 @router.post("/set")
@@ -38,7 +46,7 @@ async def set_kpd(data: Kpd,
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-    target: UserTable = get_user_by_internal_id(data.target_id, session=session)
+    target: UserTable = get_user_by_student_id(data.target_stud_id, session=session)
     target = await target
     if not target:
         raise HTTPException(

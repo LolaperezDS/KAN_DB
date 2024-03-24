@@ -70,6 +70,12 @@ async def get_all_kpd_by_id(user_id: int, session: AsyncSession) -> list[EventLo
     events = (await session.execute(statement=statement)).scalars().all()
     return events
 
+async def get_images_by_event_id(event_id: list[ImageTable],
+                                session: AsyncSession) -> list[ImageTable]:
+    statement = select(ImageTable).where(ImageTable.event_id == event_id)
+    images = (await session.execute(statement=statement)).scalars().all()
+    return images
+
 
 async def add_images_to_event(images: list[ImageTable],
                              session: AsyncSession) -> None:
