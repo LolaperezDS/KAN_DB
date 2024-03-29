@@ -37,10 +37,10 @@ class UserTable(Base):
     kpd_score = Column(Integer, nullable=False)
 
     role_id = Column(Integer, ForeignKey("roletable.id"))
-    role = relationship("RoleTable", back_populates="users")
+    role = relationship("RoleTable", back_populates="users", lazy=False)
 
     room_id = Column(Integer, ForeignKey("roomtable.id"))
-    room = relationship("RoomTable", back_populates="users")
+    room = relationship("RoomTable", back_populates="users", lazy=False)
 
 
 # Определяем модель для привилегий пользователей
@@ -49,7 +49,7 @@ class RoleTable(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(VARCHAR(length=32), nullable=False)
     acsess_level = Column(Integer, nullable=False)
-    users = relationship("UserTable", back_populates="role")
+    users = relationship("UserTable", back_populates="role", lazy=False)
 
 
 class RoomTable(Base):
@@ -57,17 +57,7 @@ class RoomTable(Base):
     id = Column(Integer, primary_key=True, index=True)
     number = Column(VARCHAR(length=8), nullable=False)
 
-    users = relationship("UserTable", back_populates="room")
-
-    floor_id = Column(Integer, ForeignKey("floortable.id"))
-    floor = relationship("FloorTable", back_populates="rooms")
-
-
-class FloorTable(Base):
-    __tablename__ = 'floortable'
-    id = Column(Integer, primary_key=True, index=True)
-    number = Column(Integer, nullable=False)
-    rooms = relationship("RoomTable", back_populates="floor")
+    users = relationship("UserTable", back_populates="room", lazy=False)
 
 
 class EventTypeTable(Base):
@@ -79,10 +69,10 @@ class EventTypeTable(Base):
 class ImageTable(Base):
     __tablename__ = 'imagetable'
     id = Column(Integer, primary_key=True, index=True)
-    image_id = Column(VARCHAR(length=128), nullable=False)
+    image_id = Column(VARCHAR(length=256), nullable=False)
 
     event_id = Column(Integer, ForeignKey("eventlogtable.id"))
-    event = relationship("EventLogTable", back_populates="images")
+    event = relationship("EventLogTable", back_populates="images", lazy=False)
 
 
 # Определяем модель для событий
@@ -97,7 +87,7 @@ class EventLogTable(Base):
     event_initiator_id = Column(Integer, ForeignKey("usertable.id"))
 
     event_type_id = Column(Integer, ForeignKey("eventtypetable.id"))
-    images = relationship("ImageTable", back_populates="event")
+    images = relationship("ImageTable", back_populates="event", lazy=False)
 
 
 # Определяем модель для уведомлений
@@ -124,13 +114,26 @@ class FeedbackTable(Base):
     initiator_id = Column(Integer, ForeignKey("usertable.id"))
 
 
-class ThroughTable(Base):
-    __tablename__ = 'throughtable'
+class SankomTable(Base):
+    __tablename__ = 'sankomtable'
+
     id = Column(Integer, primary_key=True)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    is_active = Column(Boolean, nullable=False)
+    mark = Column(Integer)
 
-    initiator_id = Column(Integer, ForeignKey("usertable.id"))
-    floor_id = Column(Integer, ForeignKey("floortable.id"))
+    initiator_id = Column(Integer, ForeignKey('usertable.id'))
+    initiator = relationship("UserTable", lazy=False)
 
+    room_id = Column(Integer, ForeignKey('roomtable.id'))
+    room = relationship("RoomTable", lazy=False)
 
+class WorkTicketTable(Base):
+    __tablename__ = 'worktickettable'
+
+    id = Column(Integer, primary_key=True)
+    deadline = Column(TIMESTAMP, nullable=False)
+    kpd_rollback = Column(Integer, nullable=False)
+    ticket_hash = Column(String(256), nullable=False)
+    text_task = Column(Text, nullable=False)
+
+    performer_id = Column(Integer, ForeignKey('usertable.id'))
+    performer = relationship("UserTable", lazy=False)
