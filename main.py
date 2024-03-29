@@ -25,10 +25,10 @@ def message_handler(message):
     user = crud.get_user_by_tg_id(message.from_user.id, session)
     if user is None:
         auth_query(message)
-    elif user.role.acsess_level >= 3:
+    elif user.role.acsess_level >= 5:
         bot.send_message(message.chat.id, "Основное меню администратора:",
                          reply_markup=markups.gen_admin())
-    elif user.role.acsess_level == 2:
+    elif user.role.acsess_level >= 3:
         bot.send_message(message.chat.id, "Основное меню модератора:",
                          reply_markup=markups.gen_moder_main())
     elif user.role.acsess_level <= 1:
