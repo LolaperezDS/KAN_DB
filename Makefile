@@ -14,5 +14,7 @@ install:
 
 run:
 	sudo python3 main.py &
+	sudo touch kdb.pid
+	sudo chmod 777 kdb.pid
 	sudo echo $! > kdb.pid
 
