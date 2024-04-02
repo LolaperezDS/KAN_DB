@@ -349,7 +349,11 @@ def auth_pwd(message):
 def auth_handler(message, login=None):
     try:
         session = SessionLocal(bind=engine)
-        crud.authenticate(message.from_user.id, login, message.text, session)
+        if (crud.authenticate(message.from_user.id, login, message.text, session)):
+            bot.send_message(message.chat.id, 'Вы успешно аутентифицировались')
+        else:
+            print(message.from_user.id, login, message.text)
+            raise BaseException
         session.close()
     except BaseException:
         bot.send_message(message.chat.id, 'Неправильный пароль. Попробуйте ещё раз или обратитесь к администрации.')
@@ -357,7 +361,6 @@ def auth_handler(message, login=None):
         return
     finally:
         session_set.discard(message.from_user.id)
-    bot.send_message(message.chat.id, 'Вы успешно аутентифицировались')
     bot.delete_message(message.chat.id, message.id)
     message_handler(message=message)
 # endregion
