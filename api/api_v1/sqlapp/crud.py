@@ -85,7 +85,7 @@ async def add_images_to_event(images: list[ImageTable],
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
-        raise IntegrityError("[IMAGE] Incorrect sql model data")
+        raise ex
 
 
 async def create_kpd(event: EventLogTable,
@@ -95,4 +95,20 @@ async def create_kpd(event: EventLogTable,
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
-        raise IntegrityError("[EVENTLOG] Incorrect sql model data")
+        raise ex
+
+
+async def create_mark(mark: SankomTable,
+                      session: AsyncSession):
+    session.add(mark)
+    try:
+        await session.commit()
+    except IntegrityError as ex:
+        await session.rollback()
+        raise ex
+
+
+async def get_last_marks(count: int,
+                         room_id: int,
+                         session: AsyncSession):
+    pass
