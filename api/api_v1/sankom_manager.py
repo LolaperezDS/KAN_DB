@@ -51,6 +51,9 @@ async def set_mark(data: SanitaryMarkCreate,
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-    
-
+    mark: SankomTable = SankomTable(mark=data.mark,
+                                    initiator_id=current_user.id,
+                                    room_id=data.room_id)
+    create_mark(mark=mark,
+                session=session)
     # Авто кпд при хреновых оценках (логику обсудить с наилем)
