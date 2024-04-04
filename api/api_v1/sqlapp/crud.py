@@ -43,7 +43,7 @@ async def get_user_by_internal_id(id: int,
     user = (await session.execute(statement)).unique().scalar_one_or_none()
     return user
 
-async def get_user_by_student_id(stud_id: str,
+async def get_user_by_student_id(stud_id: int,
                                 session: AsyncSession) -> UserTable | None:
     statement = select(UserTable).where(UserTable.student_id == stud_id)
     user = (await session.execute(statement)).unique().scalar_one_or_none()
@@ -67,13 +67,13 @@ async def change_room_user(roomid: int,
 
 async def get_all_kpd_by_id(user_id: int, session: AsyncSession) -> list[EventLogTable]:
     statement = select(EventLogTable).where(EventLogTable.event_target_id == user_id)
-    events = (await session.execute(statement=statement)).scalars().all()
+    events = (await session.execute(statement=statement)).unique().scalars().all()
     return events
 
 async def get_images_by_event_id(event_id: list[ImageTable],
                                 session: AsyncSession) -> list[ImageTable]:
     statement = select(ImageTable).where(ImageTable.event_id == event_id)
-    images = (await session.execute(statement=statement)).scalars().all()
+    images = (await session.execute(statement=statement)).unique().scalars().all()
     return images
 
 
@@ -85,7 +85,7 @@ async def add_images_to_event(images: list[ImageTable],
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
-        raise IntegrityError("Incorrect data")
+        raise ex
 
 
 async def create_kpd(event: EventLogTable,
@@ -95,4 +95,20 @@ async def create_kpd(event: EventLogTable,
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
-        raise IntegrityError("Incorrect data")
+        raise ex
+
+
+async def create_mark(mark: SankomTable,
+                      session: AsyncSession):
+    session.add(mark)
+    try:
+        await session.commit()
+    except IntegrityError as ex:
+        await session.rollback()
+        raise ex
+
+
+async def get_last_marks(count: int,
+                         room_id: int,
+                         session: AsyncSession):
+    pass

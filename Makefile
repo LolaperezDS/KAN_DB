@@ -1,5 +1,6 @@
 dotenv:
-	touch .env
+	sudo touch .env
+	sudo chmod 777 .env
 
 
 install:

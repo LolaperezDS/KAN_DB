@@ -113,6 +113,7 @@ class SankomTable(Base):
 
     id = Column(Integer, primary_key=True)
     mark = Column(Integer)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     initiator_id = Column(Integer, ForeignKey('usertable.id'))
     initiator = relationship("UserTable", lazy=False)

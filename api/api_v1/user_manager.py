@@ -98,7 +98,11 @@ async def post_user_room_change(stud_id: int,
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-
+    if len(room_name) != 4 or not (room_name[:3:].isdigit() and room_name[3].isalpha):
+        raise HTTPException(
+            status_code=status.HTTP_418_IM_A_TEAPOT,
+            detail="Неправильная сигнатура комнаты\n regex: %%d%%d%%d%%c"
+        )
     room: RoomTable = await get_room_by_name(room_name, session=session)
 
     if not room:
