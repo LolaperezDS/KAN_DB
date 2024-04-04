@@ -94,6 +94,8 @@ ALTER TABLE SankomTable ADD room_id integer REFERENCES RoomTable(id);
 
 ALTER TABLE WorkTicketTable ADD performer_id integer REFERENCES UserTable(id);
 
+ALTER TABLE sankomtable
+ADD created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 INSERT INTO RoleTable (name, acsess_level) VALUES ('Student', 1);
 INSERT INTO RoleTable (name, acsess_level) VALUES ('Sanitary', 3);

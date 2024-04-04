@@ -85,7 +85,7 @@ async def add_images_to_event(images: list[ImageTable],
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
-        raise IntegrityError("Incorrect data")
+        raise IntegrityError("[IMAGE] Incorrect sql model data")
 
 
 async def create_kpd(event: EventLogTable,
@@ -95,4 +95,4 @@ async def create_kpd(event: EventLogTable,
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
-        raise IntegrityError("Incorrect data")
+        raise IntegrityError("[EVENTLOG] Incorrect sql model data")
