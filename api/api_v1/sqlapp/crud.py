@@ -43,7 +43,7 @@ async def get_user_by_internal_id(id: int,
     user = (await session.execute(statement)).unique().scalar_one_or_none()
     return user
 
-async def get_user_by_student_id(stud_id: str,
+async def get_user_by_student_id(stud_id: int,
                                 session: AsyncSession) -> UserTable | None:
     statement = select(UserTable).where(UserTable.student_id == stud_id)
     user = (await session.execute(statement)).unique().scalar_one_or_none()
