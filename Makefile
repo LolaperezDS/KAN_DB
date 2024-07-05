@@ -1,20 +1,22 @@
-dotenv:
-	sudo touch .env
-	sudo chmod 777 .env
+list:
+	docker images
+	docker ps -a
 
+stop:
+	docker-compose stop
 
-install:
-	sudo apt-get update
-	sudo apt-get upgrade
-	sudo apt install postgresql
-	sudo apt-get install python3-pip
-	pip3 install pyTelegramBotAPI
-	pip3 install python-dotenv
-	pip3 install sqlalchemy
-	pip install asyncpg
+up:
+	docker-compose -f docker-compose.yml up
 
+remove_containers:
+	docker-compose rm
 
-run:
-	sudo python3 api/main.py &
-	sudo echo $! > kdb.pid
+clear_db:
+	sudo rm -rf pgdata/
 
+rm: stop remove_containers clear_db
+
+rebuild: remove_containers
+	docker-compose -f docker-compose.yml up --force-recreate --build
+
+recreate: rm rebuild

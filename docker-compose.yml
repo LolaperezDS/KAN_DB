@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:5002"
+    env_file: ".env"
+    environment: 
+      SECRET_KEY: ${SECRET_KEY}
+      ALGHO: ${ALGHO}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:latest
+    env_file: ".env"
+    environment: 
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+      - ./materials/backup.sql:/docker-entrypoint-initdb.d/001.sql
+    # network_mode: 'host'
