@@ -27,4 +27,11 @@ services:
     volumes:
       - ./pgdata:/var/lib/postgresql/data
       - ./materials/backup.sql:/docker-entrypoint-initdb.d/001.sql
-    # network_mode: 'host'
+  prometeus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./metrics/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
