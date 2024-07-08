@@ -2,22 +2,16 @@ import enum
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, TIMESTAMP, Boolean, Text, VARCHAR, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-from api_v1.sqlapp.database import engine, Base
-
-from dotenv import load_dotenv
-import os
+from api_v1.sqlapp.database import Base
 
 
-# Base.metadata.create_all(engine)
 
-# Определяем типы обратной связи
 class FeedbackScore(enum.Enum):
     bad = 1
     norm = 2
     cool = 3
 
 
-# Определяем модель для свойств пользователей
 class UserTable(Base):
     __tablename__ = 'usertable'
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
@@ -37,7 +31,6 @@ class UserTable(Base):
     room = relationship("RoomTable", back_populates="users", lazy=False)
 
 
-# Определяем модель для привилегий пользователей
 class RoleTable(Base):
     __tablename__ = 'roletable'
     id = Column(Integer, primary_key=True, index=True)
@@ -69,7 +62,6 @@ class ImageTable(Base):
     event = relationship("EventLogTable", back_populates="images", lazy=False)
 
 
-# Определяем модель для событий
 class EventLogTable(Base):
     __tablename__ = 'eventlogtable'
     id = Column(Integer, primary_key=True)
@@ -84,7 +76,6 @@ class EventLogTable(Base):
     images = relationship("ImageTable", back_populates="event", lazy=False)
 
 
-# Определяем модель для уведомлений
 class NotificationTable(Base):
     __tablename__ = 'notificationtable'
     id = Column(Integer, primary_key=True)
@@ -97,7 +88,6 @@ class NotificationTable(Base):
     initiator_id = Column(Integer, ForeignKey("usertable.id"))
 
 
-# Определяем модель для обратной связи
 class FeedbackTable(Base):
     __tablename__ = 'feedbacktable'
     id = Column(Integer, primary_key=True)

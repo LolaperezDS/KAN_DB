@@ -9,6 +9,7 @@ __pycache__/
 #db
 pgdata/
 sql_scripts/
+sql_scripts/backup.sql
 
 # Distribution / packaging
 .Python
