@@ -10,6 +10,7 @@ __pycache__/
 pgdata/
 sql_scripts/
 sql_scripts/backup.sql
+sql_scripts/rooms.py
 
 # Distribution / packaging
 .Python
