@@ -476,7 +476,8 @@ COPY public.eventlogtable (id, created_at, message, kpd_diff, event_target_id, e
 COPY public.eventtypetable (id, name) FROM stdin;
 3	Sanitary
 4	GRO
-5	Other
+5	Cheat
+6	Other
 \.
 
 
@@ -1065,7 +1066,7 @@ COPY public.usertable (id, student_id, is_active, tg_id, login, password, name, 
 222	132156	t	\N	6fuNg1Uj	sEd4CWld	Александр	Ищейкин	0	1	814
 223	132078	t	\N	HJxCX89H	61ozk7ej	Никита	Николаев	0	1	818
 224	132132	t	\N	NFs6q8aD	g3URWpC5	Денис	Матвиенко	0	1	817
-225	132178	t	\N	NXzesaNf	bXfHMPro	Ярослав	Каров	0	1	820
+225	132178	t	\N	NXzesaNf	bXfHMPro	Ярослав	Каров	0	6	820
 226	132189	t	\N	s1vYHPZV	DCXTKIzj	Нияз	Хайруллов	0	1	820
 227	132161	t	\N	n7fDxAif	NDHauSgs	Иван	Микрюков	0	1	817
 228	132107	t	\N	PgY6TnFD	UcNxzFs8	Руслан	Хазбуранов	0	1	813
