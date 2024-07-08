@@ -7,7 +7,7 @@ __pycache__/
 *.so
 
 #db
-./pgdata/
+pgdata/
 
 # Distribution / packaging
 .Python
