@@ -1,5 +1,4 @@
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from fastapi import Depends, HTTPException, status, APIRouter

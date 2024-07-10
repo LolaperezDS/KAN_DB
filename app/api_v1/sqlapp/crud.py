@@ -89,9 +89,9 @@ async def add_images_to_event(images: list[ImageTable],
 
 
 async def create_kpd(event: EventLogTable,
-                     session: AsyncSession) -> EventLogTable:
-    session.add(event)
+                     session: AsyncSession):
     try:
+        session.add(event)
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
@@ -107,6 +107,33 @@ async def create_mark(mark: SankomTable,
         await session.rollback()
         raise ex
 
+async def create_notification_by_data(notification: NotificationTable,
+                              session: AsyncSession) -> None:
+    notification.is_notificated = False
+    try:
+        session.add(notification)
+        await session.commit()
+    except IntegrityError as ex:
+        await session.rollback()
+        raise ex
+
+async def get_notification_by_id(n_id: int,
+                                session: AsyncSession) -> NotificationTable | None:
+    notification = (await session.execute(select(NotificationTable).where(NotificationTable.id == n_id))).unique().scalar_one_or_none()
+    return notification
+
+async def get_notifications_all_not_notified(session: AsyncSession) -> list[NotificationTable]:
+    notifications = (await session.execute(select(NotificationTable).where(NotificationTable.is_notificated == False))).unique().scalars().all()
+    return notifications
+
+async def get_notifications_by_event_release_timestamp(start: datetime,
+                                          end: datetime,
+                                          session: AsyncSession) -> list[NotificationTable]:
+    # start, end = min(start, end), max(start, end) # sequrity from dolboebiks
+    notifications = (await session.execute(select(NotificationTable).where(
+                    NotificationTable.event_date >= start).where(
+                    NotificationTable.event_date <= end))).unique().scalars().all()
+    return notifications
 
 async def get_last_marks(count: int,
                          room_id: int,

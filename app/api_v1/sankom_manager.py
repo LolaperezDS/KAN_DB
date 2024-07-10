@@ -29,7 +29,7 @@ async def get_room(room_name: str,
     if len(room_name) != 4 or not (room_name[:3:].isdigit() and room_name[3].isalpha):
         raise HTTPException(
             status_code=status.HTTP_418_IM_A_TEAPOT,
-            detail="Неправильная сигнатура комнаты\n regex: %d%d%d%c"
+            detail="Неправильная сигнатура комнаты\n regex: %d%d%d%c\nExamples: 999L, 888S"
         )
     room: RoomTable = await get_room_by_name(room_name, session=session)
 
