@@ -1,4 +1,3 @@
-from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -22,9 +21,11 @@ def get_scoped_session():
                                        scopefunc=current_task)
         return session
 
+
 async def session_dependency() -> AsyncSession:
     session = get_scoped_session()
     yield session
     await session.remove()
+
 
 Base = declarative_base()
