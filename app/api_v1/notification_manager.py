@@ -40,17 +40,19 @@ async def get_all_not_notified(current_user : Annotated[UserTable, Depends(get_c
     return cast_bd_notify_to_pd(notifications)
 
 
-@router.get("/by_event_release_timestamp", response_model=list[NotificationGet])
-async def get_by_event_release_timestamp(time_stamp: Timestamp,
+@router.get("/by_event_release_timestamp/start/{start}/end/{end}", response_model=list[NotificationGet])
+async def get_by_event_release_timestamp(start: datetime,
+                                         end: datetime,
                                          current_user : Annotated[UserTable, Depends(get_current_active_user)],
                                          session: Annotated[AsyncSession, Depends(get_scoped_session)]):
+    print("test")
     if not check_acsess_level(current_user, 4):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-    notifications: list[NotificationTable] = await get_notifications_by_event_release_timestamp(start=time_stamp.start,
-                                                                                          end=time_stamp.end,
+    notifications: list[NotificationTable] = await get_notifications_by_event_release_timestamp(start=start,
+                                                                                          end=end,
                                                                                           session=session)
     return cast_bd_notify_to_pd(notifications)
 
