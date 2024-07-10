@@ -22,7 +22,7 @@ def get_scoped_session():
         return session
 
 
-async def session_dependency() -> AsyncSession:
+async def session_dependency():
     session = get_scoped_session()
     yield session
     await session.remove()
