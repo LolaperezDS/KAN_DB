@@ -108,8 +108,8 @@ class SankomTable(Base):
     initiator_id = Column(Integer, ForeignKey('usertable.id'))
     initiator = relationship("UserTable", lazy=False)
 
-    room_id = Column(Integer, ForeignKey('roomtable.id'))
-    room = relationship("RoomTable", lazy=False)
+    user_id = Column(Integer, ForeignKey('usertable.id'), nullable=False)
+    user = relationship("UserTable", foreign_keys=[user_id], lazy=False)
 
 class WorkTicketTable(Base):
     __tablename__ = 'worktickettable'
