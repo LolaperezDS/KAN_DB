@@ -25,7 +25,7 @@ async def get_myself(current_user : Annotated[UserTable, Depends(get_current_act
                       sname=current_user.sname,
                       kpd=current_user.kpd_score,
                       role=current_user.role.name,
-                      stud_id=current_user.student_id,
+                      stud_id=current_user.id,
                       room=current_user.room.number)
     return pd_user
 
@@ -63,7 +63,7 @@ async def post_create_user(name: str,
     
     user: UserTable = UserTable(name=name,
                                 sname=sname,
-                                student_id=stud_id,
+                                id=stud_id,
                                 room_id=room.id,
                                 role_id=role_id,
                                 kpd_score=kpd_score,
@@ -85,7 +85,7 @@ async def post_user_deactivate(stud_id: int,
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-    await change_activity_user(activity=activate, stud_id=stud_id, session=session)
+    await change_activity_user(activity=activate, id=stud_id, session=session)
 
 
 @router.post("/switch/room/{stud_id}/{room_name}")
@@ -111,7 +111,7 @@ async def post_user_room_change(stud_id: int,
             detail="Комната не найдена"
         )
 
-    await change_room_user(roomid=room.id, stud_id=stud_id, session=session)
+    await change_room_user(roomid=room.id, id=stud_id, session=session)
 
 
 @router.get("/get/{stud_id}", response_model=UserGet)
@@ -124,7 +124,7 @@ async def get_other(stud_id: int,
             detail="доступ к выполнению запрещен"
         )
 
-    student: UserTable = await get_user_by_internal_id(stud_id=stud_id, session=session)
+    student: UserTable = await get_user_by_internal_id(id=stud_id, session=session)
     pd_user = UserGet(name=student.name,
                       sname=student.sname,
                       kpd=student.kpd_score,
