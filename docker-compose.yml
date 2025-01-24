@@ -26,7 +26,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS}
     volumes:
       - ./pgdata:/var/lib/postgresql/data
-      - ./sql_scripts/backup.sql:/docker-entrypoint-initdb.d/001.sql
+      - ./sql_scripts/bsql_24_01_25.sql:/docker-entrypoint-initdb.d/001.sql
   prometeus:
     image: prom/prometheus
     ports:

@@ -27,7 +27,7 @@ async def create_user(user: UserTable,
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
-        raise IntegrityError("The user is already stored")
+        raise ex("The user is already stored")
 
 async def get_room_by_name(name: str,
                            session: AsyncSession) -> RoomTable | None:
@@ -43,24 +43,19 @@ async def get_user_by_internal_id(id: int,
     user = (await session.execute(statement)).unique().scalar_one_or_none()
     return user
 
-async def get_user_by_student_id(stud_id: int,
-                                session: AsyncSession) -> UserTable | None:
-    statement = select(UserTable).where(UserTable.student_id == stud_id)
-    user = (await session.execute(statement)).unique().scalar_one_or_none()
-    return user
 
 async def change_activity_user(activity: bool,
-                                stud_id: int,
+                                id: int,
                                 session: AsyncSession) -> None:
-    statement = update(UserTable).where(UserTable.student_id == stud_id).values(is_active = activity)
+    statement = update(UserTable).where(UserTable.id == id).values(is_active = activity)
     await session.execute(statement)
     await session.commit()
 
 
 async def change_room_user(roomid: int,
-                           stud_id: int,
+                           id: int,
                            session: AsyncSession) -> None:
-    statement = update(UserTable).where(UserTable.student_id == stud_id).values(room_id = roomid)
+    statement = update(UserTable).where(UserTable.id == id).values(room_id = roomid)
     await session.execute(statement)
     await session.commit()
 
@@ -129,13 +124,14 @@ async def get_notifications_all_not_notified(session: AsyncSession) -> list[Noti
 async def get_notifications_by_event_release_timestamp(start: datetime,
                                           end: datetime,
                                           session: AsyncSession) -> list[NotificationTable]:
-    # start, end = min(start, end), max(start, end) # sequrity from dolboebiks
+    # start, end = min(start, end), max(start, end)
     notifications = (await session.execute(select(NotificationTable).where(
                     NotificationTable.event_date >= start).where(
                     NotificationTable.event_date <= end))).unique().scalars().all()
     return notifications
 
-async def get_last_marks(count: int,
-                         room_id: int,
-                         session: AsyncSession):
-    pass
+async def get_last_marks(user_id: int,
+                         session: AsyncSession,
+                         count: int=None):
+    marks = (await session.execute(select(SankomTable).where(UserTable.id == user_id))).unique().scalars().all()
+    return marks
