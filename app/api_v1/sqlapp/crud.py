@@ -133,5 +133,5 @@ async def get_notifications_by_event_release_timestamp(start: datetime,
 async def get_last_marks(user_id: int,
                          session: AsyncSession,
                          count: int=None):
-    marks = (await session.execute(select(SankomTable).where(UserTable.id == user_id))).scalars().all()
+    marks = (await session.execute(select(SankomTable).where(UserTable.id == user_id))).unique().scalars().all()
     return marks

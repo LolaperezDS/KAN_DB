@@ -68,10 +68,16 @@ async def get_marks(stud_id: int,
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-    return await get_last_marks(user_id=stud_id, session=session)
+    return [SanitaryMarkGet(target_id=mark.user_id,
+                            mark=mark.mark,
+                            created_by=mark.initiator_id,
+                            date=mark.created_at) for mark in await get_last_marks(user_id=stud_id, session=session)]
 
 
 @router.get("mark/get/my")
 async def get_marks(current_user : Annotated[UserTable, Depends(get_current_active_user)],
                     session: Annotated[AsyncSession, Depends(get_scoped_session)]):
-    return await get_last_marks(user_id=current_user.id, session=session)
+    return [SanitaryMarkGet(target_id=mark.user_id,
+                            mark=mark.mark,
+                            created_by=mark.initiator_id,
+                            date=mark.created_at) for mark in await get_last_marks(user_id=current_user.id, session=session)]
