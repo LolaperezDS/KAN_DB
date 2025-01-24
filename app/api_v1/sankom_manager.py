@@ -52,7 +52,7 @@ async def set_mark(data: SanitaryMarkCreate,
             detail="доступ к выполнению запрещен"
         )
     mark: SankomTable = SankomTable(user_id=data.target_id,
-                                    initiator_id=current_user.student_id,
+                                    initiator_id=current_user.id,
                                     mark=data.mark)
     await create_mark(mark=mark,
                       session=session)
@@ -68,10 +68,10 @@ async def get_marks(stud_id: int,
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-    return await get_last_marks(user_stud_id=stud_id, session=session)
+    return await get_last_marks(user_id=stud_id, session=session)
 
 
 @router.get("mark/get/my")
 async def get_marks(current_user : Annotated[UserTable, Depends(get_current_active_user)],
                     session: Annotated[AsyncSession, Depends(get_scoped_session)]):
-    return await get_last_marks(user_stud_id=current_user.student_id, session=session)
+    return await get_last_marks(user_id=current_user.id, session=session)
