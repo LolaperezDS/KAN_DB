@@ -4,7 +4,7 @@ from datetime import datetime
 # from users import UserGet
 
 class SanitaryMarkCreate(BaseModel):
-    room_id: int
+    target_id: int
     mark: int
 
 

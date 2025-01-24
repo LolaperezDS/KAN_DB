@@ -129,5 +129,6 @@ async def get_other(stud_id: int,
                       sname=student.sname,
                       kpd=student.kpd_score,
                       stud_id=student.student_id,
+                      role=student.role.name,
                       room=student.room.number)
     return pd_user

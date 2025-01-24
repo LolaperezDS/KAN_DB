@@ -51,9 +51,27 @@ async def set_mark(data: SanitaryMarkCreate,
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-    mark: SankomTable = SankomTable(mark=data.mark,
-                                    initiator_id=current_user.id,
-                                    room_id=data.room_id)
-    create_mark(mark=mark,
-                session=session)
-    # Авто кпд при хреновых оценках (логику обсудить с наилем)
+    mark: SankomTable = SankomTable(user_id=data.target_id,
+                                    initiator_id=current_user.student_id,
+                                    mark=data.mark)
+    await create_mark(mark=mark,
+                      session=session)
+    return status.HTTP_200_OK
+
+
+@router.get("mark/get/{stud_id}")
+async def get_marks(stud_id: int,
+                    current_user : Annotated[UserTable, Depends(get_current_active_user)],
+                    session: Annotated[AsyncSession, Depends(get_scoped_session)]):
+    if not check_acsess_level(current_user, 2):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="доступ к выполнению запрещен"
+        )
+    return await get_last_marks(user_stud_id=stud_id, session=session)
+
+
+@router.get("mark/get/my")
+async def get_marks(current_user : Annotated[UserTable, Depends(get_current_active_user)],
+                    session: Annotated[AsyncSession, Depends(get_scoped_session)]):
+    return await get_last_marks(user_stud_id=current_user.student_id, session=session)

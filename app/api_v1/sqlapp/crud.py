@@ -135,7 +135,8 @@ async def get_notifications_by_event_release_timestamp(start: datetime,
                     NotificationTable.event_date <= end))).unique().scalars().all()
     return notifications
 
-async def get_last_marks(count: int,
-                         room_id: int,
-                         session: AsyncSession):
-    pass
+async def get_last_marks(user_stud_id: int,
+                         session: AsyncSession,
+                         count: int=None):
+    marks = (await session.execute(select(SankomTable).where(UserTable.student_id == user_stud_id))).scalars().all()
+    return marks
