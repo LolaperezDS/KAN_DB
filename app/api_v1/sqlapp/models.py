@@ -15,7 +15,6 @@ class FeedbackScore(enum.Enum):
 class UserTable(Base):
     __tablename__ = 'usertable'
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
-    student_id = Column(Integer, nullable=False, unique=True)
     is_active = Column(Boolean, nullable=False)
     tg_id = Column(VARCHAR(length=32), unique=True)
     login = Column(VARCHAR(length=32), nullable=False, unique=True)
@@ -102,14 +101,13 @@ class SankomTable(Base):
     __tablename__ = 'sankomtable'
 
     id = Column(Integer, primary_key=True)
-    mark = Column(Integer)
+    mark = Column(Integer, nullable=False)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
-    initiator_id = Column(Integer, ForeignKey('usertable.id'))
-    initiator = relationship("UserTable", lazy=False)
+    initiator_id = Column(Integer, nullable=False)
 
-    user_id = Column(Integer, ForeignKey('usertable.id'), nullable=False)
-    user = relationship("UserTable", foreign_keys=[user_id], lazy=False)
+    user_id = Column(Integer, ForeignKey('usertable.id'))
+    user = relationship("UserTable", lazy=False)
 
 class WorkTicketTable(Base):
     __tablename__ = 'worktickettable'
