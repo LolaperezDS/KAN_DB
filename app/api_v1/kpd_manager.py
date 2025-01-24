@@ -65,6 +65,8 @@ async def get_my_kpd(user_id: int,
 async def set_kpd(data: Kpd,
                   current_user : Annotated[UserTable, Depends(get_current_active_user)],
                   session: Annotated[AsyncSession, Depends(get_scoped_session)]):
+    
+    # HOHO shitcode here :)
     eventtype = 5
     if data.kpd_diff <= 0 or len(data.message) < 5:
         eventtype = 6
@@ -78,8 +80,7 @@ async def set_kpd(data: Kpd,
             status_code=status.HTTP_403_FORBIDDEN,
             detail="доступ к выполнению запрещен"
         )
-    target: UserTable = get_user_by_student_id(data.target_stud_id, session=session)
-    target = await target
+    target: UserTable = await get_user_by_internal_id(data.target_stud_id, session=session)
     if not target:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

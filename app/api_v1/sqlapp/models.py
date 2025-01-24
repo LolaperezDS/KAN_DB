@@ -15,7 +15,6 @@ class FeedbackScore(enum.Enum):
 class UserTable(Base):
     __tablename__ = 'usertable'
     id = Column(Integer, primary_key=True, nullable=False, unique=True)
-    student_id = Column(Integer, nullable=False, unique=True)
     is_active = Column(Boolean, nullable=False)
     tg_id = Column(VARCHAR(length=32), unique=True)
     login = Column(VARCHAR(length=32), nullable=False, unique=True)

@@ -124,11 +124,11 @@ async def get_other(stud_id: int,
             detail="доступ к выполнению запрещен"
         )
 
-    student: UserTable = await get_user_by_student_id(stud_id=stud_id, session=session)
+    student: UserTable = await get_user_by_internal_id(stud_id=stud_id, session=session)
     pd_user = UserGet(name=student.name,
                       sname=student.sname,
                       kpd=student.kpd_score,
-                      stud_id=student.student_id,
+                      stud_id=student.id,
                       role=student.role.name,
                       room=student.room.number)
     return pd_user
