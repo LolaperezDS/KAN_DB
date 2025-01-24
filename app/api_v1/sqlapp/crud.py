@@ -27,7 +27,7 @@ async def create_user(user: UserTable,
         await session.commit()
     except IntegrityError as ex:
         await session.rollback()
-        raise IntegrityError("The user is already stored")
+        raise ex("The user is already stored")
 
 async def get_room_by_name(name: str,
                            session: AsyncSession) -> RoomTable | None:
