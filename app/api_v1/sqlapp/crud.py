@@ -135,3 +135,9 @@ async def get_last_marks(user_id: int,
                          count: int=None):
     marks = (await session.execute(select(SankomTable).where(UserTable.id == user_id))).unique().scalars().all()
     return marks
+
+
+async def get_room_users(room_id: int,
+                         session: AsyncSession) -> list[UserTable]:
+    users = (await session.execute(select(UserTable).where(UserTable.room_id == room_id))).unique().scalars().all()
+    return users
